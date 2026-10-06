@@ -31,7 +31,7 @@ const DEGUM_CONTACT = { whatsapp: "254768675139", phone: "0768675139", email: ""
 const DEGUM_CUSTOMERS = {
   "153fe8faffd9fac40fc009f651068a36b264951936107de7facf89c7ca4c31bb": {
     name: "Owner test",
-    devices: [],                   // up to 2 Device IDs, e.g. ["K3F9-2QAB", "7HDM-XP4C"]
+    devices: ["1DBJ-WQ4Z"],                   // up to 2 Device IDs, e.g. ["K3F9-2QAB", "7HDM-XP4C"]
     mode: "TRIAL",                 // TRIAL | ACTIVE | LOCKED
     trialStart: "2026-10-06",
     trialEnd: "2026-10-20",        // 14-day trial, then the app locks
