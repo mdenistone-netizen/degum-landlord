@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create access entry</title>
+<style>body{font:16px system-ui,Arial;margin:0;padding:16px;background:#f3f5f9;color:#1f2937;max-width:520px}h2{color:#1F3864}input,textarea,button{font:inherit;padding:10px;width:100%;margin:6px 0;border:1px solid #cbd5e1;border-radius:8px}button{background:#1F3864;color:#fff;border:0}textarea{height:210px;font-family:monospace;font-size:12px}.c{font-size:22px;font-weight:700;letter-spacing:1px;background:#fff;padding:12px;border-radius:8px;text-align:center}</style></head><body>
+<h2>Degum Landlord &mdash; new customer entry</h2><p>For Degum Enterprises only. Tap Generate, copy the code to the landlord, then paste the entry into <b>access-control.js</b> on GitHub (inside DEGUM_CUSTOMERS). Each code works on 2 phones only: add the two Device IDs shown on the landlord's phone.</p>
+<button id="g">Generate a new access code</button><div class="c" id="code">&mdash;</div>
+<input id="nm" placeholder="Landlord first name or label"><input id="d1" placeholder="Phone 1 Device ID (optional now)"><input id="d2" placeholder="Phone 2 Device ID (optional)"><button id="b">Make entry</button><textarea id="out" readonly></textarea><button id="cp">Copy entry</button>
+<script>
+const AL='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+async function H(c){const s='degum:'+c.toUpperCase().replace(/[^A-Z0-9]/g,'');const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+document.getElementById('g').onclick=()=>{const a=new Uint32Array(12);crypto.getRandomValues(a);const r=[...a].map(x=>AL[x%AL.length]).join('');document.getElementById('code').textContent='LND-'+r.slice(0,4)+'-'+r.slice(4,8)+'-'+r.slice(8)};
+document.getElementById('b').onclick=async()=>{const c=document.getElementById('code').textContent;if(c.length<10)return alert('Tap Generate first.');const h=await H(c),s=new Date(),e=new Date(s.getTime()+14*864e5),n=document.getElementById('nm').value||'Landlord',dv=[document.getElementById('d1').value,document.getElementById('d2').value].map(x=>x.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'')).filter(Boolean).slice(0,2).map(x=>'"'+x+'"').join(', ');
+document.getElementById('out').value='  "'+h+'": {\n    name: "'+n.replace(/"/g,'')+'",\n    devices: ['+dv+'],\n    mode: "TRIAL",\n    trialStart: "'+iso(s)+'",\n    trialEnd: "'+iso(e)+'",\n    subscriptionStart: null,\n    subscriptionEnd: null\n  },'};
+document.getElementById('cp').onclick=()=>{const o=document.getElementById('out');o.select();try{navigator.clipboard.writeText(o.value)}catch(e){document.execCommand('copy')}};
+</script></body></html>
