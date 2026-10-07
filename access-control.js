@@ -37,6 +37,15 @@ const DEGUM_CUSTOMERS = {
     trialEnd: "2026-10-20",        // 14-day trial, then the app locks
     subscriptionStart: null,
     subscriptionEnd: null
+  },
+     "807a7974103c24571fd200b80b65d7b9cf9f5ca5ddf6ee46065eda125c9e5bc2": {
+    name: "Julia",
+    devices: [],
+    mode: "TRIAL",
+    trialStart: "2026-10-07",
+    trialEnd: "2026-10-21",
+    subscriptionStart: null,
+    subscriptionEnd: null
   }
 };
 
