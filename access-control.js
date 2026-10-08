@@ -40,7 +40,7 @@ const DEGUM_CUSTOMERS = {
   },
      "80bd6dc3fee6c68c98dc58c3fada0b9e6ceedc65e8d47099abfb860db5ad96cb": {
     name: "Peter Muchoki",
-    devices: [],
+    devices: ["4OJT-7IUO"],
     mode: "TRIAL",
     trialStart: "2026-10-08",
     trialEnd: "2026-10-22",
