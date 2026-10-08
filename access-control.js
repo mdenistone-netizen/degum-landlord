@@ -38,6 +38,15 @@ const DEGUM_CUSTOMERS = {
     subscriptionStart: null,
     subscriptionEnd: null
   },
+     "80bd6dc3fee6c68c98dc58c3fada0b9e6ceedc65e8d47099abfb860db5ad96cb": {
+    name: "Peter Muchoki",
+    devices: [],
+    mode: "TRIAL",
+    trialStart: "2026-10-08",
+    trialEnd: "2026-10-22",
+    subscriptionStart: null,
+    subscriptionEnd: null
+  },
      "807a7974103c24571fd200b80b65d7b9cf9f5ca5ddf6ee46065eda125c9e5bc2": {
     name: "Julia",
     devices: ["1FHE-DZBB"],
