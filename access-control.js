@@ -5,14 +5,15 @@
    and the app then follows THEIR entry below. Entries are keyed by a scrambled (hashed) version
    of the code, so reading this file does not reveal anybody's code.
 
-   NEW LANDLORD ........ open  your-site/make-code.html , tap Generate, paste the entry it makes
+   NEW LANDLORD ........ open your PRIVATE copy of make-code.html (it is NOT on the website), tap Generate, paste the entry it makes
                          below, and send that landlord the code. Each code works on 2 PHONES ONLY:
                          put the two Device IDs (shown on the phone's lock screen) in devices: ["ID1","ID2"] (only you ever see the code)
    START TRIAL ......... mode "TRIAL",  trialStart / trialEnd
    ACTIVATE (paid) ..... mode "ACTIVE", subscriptionStart / subscriptionEnd
    EXTEND .............. change subscriptionEnd (or trialEnd) to the new date
    LOCK ................ mode "LOCKED"      UNLOCK ... set mode back to TRIAL or ACTIVE
-   Dates are YYYY-MM-DD. The landlord has access THROUGH the end date.
+   Dates are YYYY-MM-DD. The landlord has access THROUGH the end date (inclusive):
+                         a 14-day trial starting 20 Oct ends 2 Nov. The private generator calculates this.
    After editing: commit on GitHub, Netlify deploys in about a minute, done.
 
    DEV NOTE (code only): this is client-side access control for pilot customers. It is not
@@ -20,7 +21,7 @@
    site, so keep only first names / labels here (no phone numbers). A later backend version
    should validate on a server.
    ===================================================================== */
-const DEGUM_APP_VERSION = "3.0.0";     // optional: raise (e.g. 1.0.1) when you deploy a change
+const DEGUM_APP_VERSION = "3.1.0";     // optional: raise (e.g. 1.0.1) when you deploy a change
 const DEGUM_ACTIVE_CUSTOMER = "";      // leave EMPTY for the shared link (landlords enter their code)
 
 const DEGUM_MAX_DEVICES = 2;                 // a code works on at most 2 phones
@@ -53,6 +54,46 @@ const DEGUM_CUSTOMERS = {
     mode: "Trial",
     trialStart: "2026-10-07",
     trialEnd: "2026-10-21",
+    subscriptionStart: null,
+    subscriptionEnd: null
+  },
+
+  /* Founding church testers: exactly 35 calendar days, 13 Oct 2026 to 16 Nov 2026 inclusive. */
+  "cd2f2e714291f4bd9470b7371053590dc1841026e5d3e8328089a539924b834c": {
+    name: "Church tester 1",
+    devices: [],
+    mode: "TRIAL",
+    trialStart: "2026-10-13",
+    trialEnd: "2026-11-16",
+    subscriptionStart: null,
+    subscriptionEnd: null
+  },
+  "73dd5907d0bcc489223c2f04705c89785f560c059df8e23228a9a15f8d5f2c51": {
+    name: "Church tester 2",
+    devices: [],
+    mode: "TRIAL",
+    trialStart: "2026-10-13",
+    trialEnd: "2026-11-16",
+    subscriptionStart: null,
+    subscriptionEnd: null
+  },
+
+  /* Ordinary customers (dates kept exactly as supplied). */
+  "5b9c4111963bccba9386440f57e28e3ce007d76e8e470bc9b0061f998ea50495": {
+    name: "Landlord 4",
+    devices: [],
+    mode: "TRIAL",
+    trialStart: "2026-10-11",
+    trialEnd: "2026-10-25",
+    subscriptionStart: null,
+    subscriptionEnd: null
+  },
+  "67cc5ec37bcea3bf3e256b5529d1c7cc1cb28963b38624eadb80a00b0344cce7": {
+    name: "Landlord 5",
+    devices: [],
+    mode: "TRIAL",
+    trialStart: "2026-10-11",
+    trialEnd: "2026-10-25",
     subscriptionStart: null,
     subscriptionEnd: null
   }
