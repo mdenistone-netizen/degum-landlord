@@ -90,7 +90,7 @@ const DEGUM_CUSTOMERS = {
   },
      "6313476b7aafe5e343f4f67dbf6e005432f5d9a80b6dbdcc8d33fb8346f9563a": {
     name: "Owner",
-    devices: [],
+    devices: ["4TT7-1MES"],
     mode: "TRIAL",
     trialStart: "2026-10-12",
     trialEnd: "2026-11-15",
