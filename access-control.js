@@ -61,7 +61,7 @@ const DEGUM_CUSTOMERS = {
   /* Founding church testers: exactly 35 calendar days, 13 Oct 2026 to 16 Nov 2026 inclusive. */
   "cd2f2e714291f4bd9470b7371053590dc1841026e5d3e8328089a539924b834c": {
     name: "Church tester 1",
-    devices: [],
+    devices: ["V4F5-1T0F"],
     mode: "TRIAL",
     trialStart: "2026-10-13",
     trialEnd: "2026-11-16",
