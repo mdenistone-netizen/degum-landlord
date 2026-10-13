@@ -70,7 +70,7 @@ const DEGUM_CUSTOMERS = {
   },
   "73dd5907d0bcc489223c2f04705c89785f560c059df8e23228a9a15f8d5f2c51": {
     name: "Church tester 2",
-    devices: [],
+    devices: ["1EIZ-5K67"],
     mode: "TRIAL",
     trialStart: "2026-10-13",
     trialEnd: "2026-11-16",
