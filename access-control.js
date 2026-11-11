@@ -91,11 +91,11 @@ const DEGUM_CUSTOMERS = {
      "6313476b7aafe5e343f4f67dbf6e005432f5d9a80b6dbdcc8d33fb8346f9563a": {
     name: "Owner",
     devices: ["4TT7-1MES"],
-    mode: "TRIAL",
+    mode: "ACTIVE",
     trialStart: "2026-10-12",
     trialEnd: "2026-11-15",
-    subscriptionStart: null,
-    subscriptionEnd: null
+    subscriptionStart: "2026-11-11",
+    subscriptionEnd: "2026-12-11"
   },
   "67cc5ec37bcea3bf3e256b5529d1c7cc1cb28963b38624eadb80a00b0344cce7": {
     name: "Landlord 5",
