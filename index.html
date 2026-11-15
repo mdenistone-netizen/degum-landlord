@@ -33,7 +33,7 @@ body{background:#F6F8FB;color:#172033}h2,h3{color:#1F3864}
 button.s{background:#fff;color:#1F3864;border:1px solid #E4E7EC}button.w{background:#2196D3}
 #side a[data-i=readings].on,#side a[data-i=readings]:hover{background:#2196D3}#m{z-index:35}
 #bn{display:none}
-@media(max-width:800px){#bn{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #E4E7EC;z-index:6;padding-bottom:env(safe-area-inset-bottom)}#bn button{background:none;color:#667085;border-radius:0;min-height:56px;font-size:12px;font-weight:600}#bn button.on{color:#1F3864;box-shadow:inset 0 3px 0 #1F3864}#bn button[data-i=readings].on{color:#2196D3;box-shadow:inset 0 3px 0 #2196D3}main{padding-bottom:84px}#toast{bottom:76px}}
+@media(max-width:800px){#bn{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #E4E7EC;z-index:6;padding-bottom:env(safe-area-inset-bottom)}#bn button{background:none;color:#667085;border-radius:0;min-height:56px;font-size:12px;font-weight:600}#bn button.on{color:#1F3864;box-shadow:inset 0 3px 0 #1F3864}#bn button[data-i=readings].on{color:#2196D3;box-shadow:inset 0 3px 0 #2196D3}main{padding-bottom:84px}#toast{bottom:76px}body.cf #toast{display:none!important}}
 #access{display:none;position:fixed;inset:0;z-index:50;background:#1F3864;align-items:center;justify-content:center;padding:24px;overflow:auto}#access.on{display:flex}#access .lk{background:#fff;color:#172033;border-radius:16px;padding:24px;max-width:420px;width:100%}#access input{width:100%;min-height:48px;margin:8px 0}
 .card.dp{background:#F3F6FB;border:1px solid #C9D3E6}.card.dp b{color:#1F3864}
 .dh{font-size:24px;font-weight:800;color:#1F3864;letter-spacing:.5px;text-transform:uppercase}
@@ -54,8 +54,8 @@ const mlabel=m=>MN[+m.slice(5)-1]+' '+m.slice(0,4),np=s=>{s=String(s||'').replac
 const nn=s=>(s||'').toUpperCase().replace(/[^A-Z ]/g,'').split(' ').filter(Boolean).sort().join(' ');
 
 let S,month=today().slice(0,7),view='dashboard',ui={tq:'',tf:'all',pq:'',ip:'month',rd:today(),rep:'collection',st:'',rt:''};const V={},A={},C={};
-const save=()=>{try{stampAll();localStorage.setItem(K,JSON.stringify(S))}catch(e){toast('Could not save: browser storage is full or blocked.')}};
-const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>e.style.display='none',3200)};
+let BASE='',ANC=null,EPOCH='',CONFLICT=false,DIRTY=false,INACT=0,SAVEFAIL=null,SAVEDN=0;const save=()=>persist();
+const toast=t=>{if(INACT&&SAVEFAIL)return;const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>e.style.display='none',3200)};
 const modal=h=>{$('#m').innerHTML='<div class="mb">'+h+'</div>';$('#m').classList.add('on')},closeM=()=>$('#m').classList.remove('on');
 const audit=(act,info)=>S.audit.push({at:new Date().toISOString(),act,info});
 
@@ -116,29 +116,29 @@ function demo(){const mk=(n,u,p,m,i,rent,mp)=>({id:uid(),name:n,unit:u,phone:p,m
  const pay=(i,amt,date,m,ch,ref,sn,cmp)=>{const t=i==null?null:T[i],p={id:uid(),tid:t?t.id:null,amount:amt,date,method:m,ch,ref,sender:sn,phone:t?t.phone:'0799999999',notes:'Demo payment',alloc:[],status:'recorded',rec:date+'T09:00:00.000Z',src:'demo'};if(t&&!cmp)p.alloc=suggest(t.id,amt,ch);S.payments.push(p)};
  pay(0,5000,'2026-10-02','Bank','ch1','DEMOB001','J KAMAU');pay(0,500,'2026-10-03','M-Pesa','ch2','DEMOM001','J KAMAU');pay(0,300,'2026-10-04','M-Pesa','ch2','DEMOM002','J KAMAU');pay(0,10000,'2026-10-05','Bank','ch1','DEMOB002','J KAMAU');
  pay(1,12000,'2026-10-02','Bank','ch1','DEMOB003','MARY ACHIENG');pay(1,1000,'2026-10-04','Cash','ch3','','Cash',true);pay(null,500,'2026-10-05','M-Pesa','ch2','DEMOM003','UNKNOWN SENDER')}
-function load(){try{S=JSON.parse(localStorage.getItem(K))}catch(e){S=null}if(!S||!Array.isArray(S.tenants)||!Array.isArray(S.charges)||!Array.isArray(S.payments)){demo();save()}S.audit=S.audit||[];S.readings=S.readings||[];syncUnits();ensureRules();migrateStamps();stampInit();save()}
+function load(){let raw0=null;try{raw0=localStorage.getItem(K);S=JSON.parse(raw0)}catch(e){S=null}BASE=raw0===null?'':raw0;try{EPOCH=localStorage.getItem(K+'_epoch')||''}catch(e){EPOCH=''}CONFLICT=false;DIRTY=false;if(raw0!==null&&!(S&&Array.isArray(S.tenants)&&Array.isArray(S.charges)&&Array.isArray(S.payments))){try{localStorage.setItem(K+'_unreadable',raw0)}catch(e){}}if(!S||!Array.isArray(S.tenants)||!Array.isArray(S.charges)||!Array.isArray(S.payments)){demo();save()}S.audit=S.audit||[];S.readings=S.readings||[];syncUnits();ensureRules();migrateStamps();stampInit();save();ANC=tryParse(BASE);resetLast();MINE.clear()}
 /* ---------- view helpers ---------- */
 const card=(l,v,c='')=>`<div class="card ${c}"><small>${l}</small><b>${v}</b></div>`,mSel=()=>`<input type="month" value="${month}" data-c="mon" style="width:auto">`;
 const fld=(l,id,v='',t='text',x='')=>`<label>${l}<input id="${id}" type="${t}" value="${esc(v)}" ${x}></label>`,val=id=>($('#'+id)||{}).value||'';
 const sel=(id,opts,cur,x='')=>`<select id="${id}" ${x}>${opts.map(o=>`<option value="${esc(o[0])}" ${o[0]===cur?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`;
 const chOpts=()=>S.channels.map(c=>[c.id,c.label+' — '+c.method]),tOpts=(un)=>[['',un||'Select tenant'],...owing().map(t=>[t.id,tlabel(t)])];
-const badge=s=>`<span class="bd ${s}">${s==='PARTIAL'?'PART PAID':s}</span>`,demoBar=()=>S.demo?'<div class="demo"><b>DEMO DATA</b> — sample records for ABC Apartments. <button class="sm d" data-a="clearDemo">Clear Demo Data</button></div>':'';
+const badge=s=>`<span class="bd ${s}">${s==='PARTIAL'?'PART PAID':s}</span>`,demoBar=()=>S.demo?'<div class="demo"><b>DEMO DATA</b> — sample records and sample payment details. <button class="sm d" data-a="clearDemo">Clear Demo Data</button></div>':setupBar();
 const rr=el=>{const p=el.selectionStart,id=el.id;render();const n=$('#'+id);if(n){n.focus();try{n.setSelectionRange(p,p)}catch(e){}}};
 /* ---------- screens ---------- */
 V.dashboard0=()=>{const m=month,exp=r2(S.charges.filter(c=>!c.cancelled&&c.month===m).reduce((s,c)=>s+c.amount,0)),col=r2(validPays().filter(p=>p.date.slice(0,7)===m).reduce((s,p)=>s+opAmt(p),0)),as=owing().map(t=>({t,a:acct(t.id)})),out=r2(as.reduce((s,x)=>s+x.a.out,0));
  const n=f=>as.filter(f).length,un=S.payments.filter(p=>p.status!=='reversed'&&!p.tid).length;
  return demoBar()+`<div class="hd"><h2>Collection Dashboard — ${mlabel(m)}</h2>${mSel()}</div><div class="cards">${card('Expected this month',money(exp))}${card('Collected this month',money(col),'g')}${card('Outstanding (all months)',money(out),'r')}${card('Collection rate',exp?Math.min(100,Math.round(col/exp*100))+'%':'—')}</div><div class="cards">${card('Fully paid',n(x=>x.a.billed>0&&x.a.out==0)+' tenants')}${card('Partially paid',n(x=>x.a.out>0&&x.a.paid>0)+' tenants')}${card('Not paid',n(x=>x.a.out>0&&x.a.paid==0)+' tenants')}${card('Follow-up required',n(x=>isOverdue(x.t.id))+' tenants','r')}${card('Unmatched payments',un,'r')}</div><div class="bar"><button data-a="payForm">+ Record Payment</button><button class="s" data-a="nav" data-i="inbox">Payment Inbox</button><button class="s" data-a="nav" data-i="arrears">Arrears</button></div>`};
 V.tenants=()=>{const q=ui.tq.toLowerCase(),f=ui.tf,L=live().filter(t=>{const a=acct(t.id);return(f=='all'||(f=='a'&&t.active)||(f=='i'&&!t.active)||(f=='owing'&&a.out>0)||(f=='credit'&&a.credit>0))&&(t.name+t.unit+t.phone+t.meter).toLowerCase().includes(q)});
- return`<div class="hd"><h2>Tenants</h2><button data-a="tForm">+ Add Tenant</button></div><div class="bar"><input id="tq" data-live data-c="tq" placeholder="Search name, house, phone, meter" value="${esc(ui.tq)}">${sel('tf',[['all','All tenants'],['a','Active'],['i','Inactive'],['owing','Owes money'],['credit','Has credit']],f,'data-c="tf"')}</div>${L.map(t=>{const a=acct(t.id);return`<div class="tc"><h3>${esc(t.name)} ${t.active?'':'<span class="bd UNPAID">Inactive</span>'}</h3>House: <b>${esc(t.unit)}</b> · Rent: ${money(t.rent||0)}<br>Phone: ${esc(t.phone)} · Meter: ${esc(t.meter)}<div class="bal" style="color:${a.out>0?'#b91c1c':'#166534'}">${a.credit>0?'Credit: '+money(a.credit):'Owes: '+money(a.out)}</div><div class="acts"><button class="s" data-a="acctView" data-i="${t.id}">VIEW ACCOUNT</button><button class="s" data-a="tForm" data-i="${t.id}">EDIT</button><button class="g" data-a="payForm" data-i="${t.id}">RECORD PAYMENT</button><button class="s" data-a="chgForm" data-i="${t.id}">ADD CHARGE</button><button class="s wide" data-a="rForm" data-i="${t.id}">REPLACE WATER METER</button>${t.active?'':`<button class="g wide" data-a="tAct" data-i="${t.id}">REACTIVATE</button>`}<button class="d wide" data-a="moveOut" data-i="${t.id}">Move Out</button><button class="d" data-a="tDel" data-i="${t.id}">Delete Tenant</button></div></div>`}).join('')||'<div class="note">No tenants found.</div>'}`};
-V.charges=()=>`<div class="hd"><h2>Charges</h2><button data-a="ctForm">+ New Charge Type</button></div><div class="note">Charges say what each tenant owes. <b>Rent</b> uses each tenant's own rent amount. Fixed charges (garbage, Wi-Fi…) are created for the month with the button below. Water is created when you save a meter reading.</div><div class="card"><div class="hd"><b>Create this month's charges</b>${mSel()}</div><p>Creates rent and fixed charges for ${mlabel(month)} for every active tenant. Charges that already exist are never duplicated.</p><button class="g" data-a="genMonth" style="width:100%">GENERATE ${mlabel(month).toUpperCase()} CHARGES</button></div>${S.ctypes.filter(c=>c.calc!=='sys'&&!c.deleted).map(c=>`<div class="tc"><h3>${esc(c.name)} ${c.active?'':'<span class="bd UNPAID">Off</span>'}</h3>${{rent:'Each tenant\'s own rent',fixed:money(c.amount)+' · '+c.freq+' · '+(c.applies==='some'?(c.tids||[]).length+' selected tenant(s)':'all tenants'),meter:'Water meter × '+money(S.settings.rate)+'/unit (default)',once:'One-time charge you add per tenant'}[c.calc]}<br>Preferred channel: ${esc(chName(c.ch))}<div class="acts"><button class="s" data-a="ctForm" data-i="${c.id}">EDIT</button><button class="s" data-a="ctTog" data-i="${c.id}">${c.active?'TURN OFF':'TURN ON'}</button>${c.calc==='rent'||c.calc==='meter'?'':`<button class="d wide" data-a="ctDel" data-i="${c.id}">DELETE CHARGE</button>`}</div></div>`).join('')}`;
+ return`<div class="hd"><h2>Tenants</h2><button data-a="tForm">+ Add Tenant</button></div><div class="bar"><input id="tq" data-live data-c="tq" placeholder="Search name, house, phone, meter" value="${esc(ui.tq)}">${sel('tf',[['all','All tenants'],['a','Active'],['i','Inactive'],['owing','Owes money'],['credit','Has credit']],f,'data-c="tf"')}</div>${L.map(t=>{const a=acct(t.id);return`<div class="tc"><h3>${esc(t.name)} ${t.active?'':'<span class="bd UNPAID">Inactive</span>'}</h3>House: <b>${esc(t.unit)}</b> · Rent: ${money(t.rent||0)}<br>Phone: ${esc(t.phone)} · Meter: ${esc(t.meter)}<div class="bal" style="color:${a.out>0?'#b91c1c':'#166534'}">${a.credit>0?'Credit: '+money(a.credit):'Owes: '+money(a.out)}</div>${ibNote(t)}<div class="acts"><button class="s" data-a="acctView" data-i="${t.id}">VIEW ACCOUNT</button><button class="s" data-a="tForm" data-i="${t.id}">EDIT</button><button class="g" data-a="payForm" data-i="${t.id}">RECORD PAYMENT</button><button class="s" data-a="chgForm" data-i="${t.id}">ADD CHARGE</button><button class="s wide" data-a="rForm" data-i="${t.id}">REPLACE WATER METER</button>${t.active?'':`<button class="g wide" data-a="tAct" data-i="${t.id}">REACTIVATE</button>`}<button class="d wide" data-a="moveOut" data-i="${t.id}">Move Out</button><button class="d" data-a="tDel" data-i="${t.id}">Delete Tenant</button></div></div>`}).join('')||'<div class="note">No tenants found.</div>'}`};
+V.charges=()=>`<div class="hd"><h2>Charges</h2><button data-a="ctForm">+ New Charge Type</button></div><div class="note">Charges say what each tenant owes. <b>Rent</b> uses each tenant's own rent amount. Fixed charges (garbage, Wi-Fi…) are created for the month with the button below. Water is created when you save a meter reading.</div><div class="card"><div class="hd"><b>Create this month's charges</b>${mSel()}</div><p>Creates rent and fixed charges for ${mlabel(month)} for every active tenant. Charges that already exist are never duplicated. They fall due on day ${Math.min(28,Math.max(1,+S.settings.due||5))} of the following month (${mlabel(month)} charges: ${dmy(genDue(month))}).</p>${month>today().slice(0,7)?'<div class="note" style="border-left:4px solid #d97706">⚠ '+mlabel(month)+' has not started yet.</div><button class="d" data-a="genMonth" style="width:100%">BILL A FUTURE MONTH: '+mlabel(month).toUpperCase()+'…</button>':'<button class="g" data-a="genMonth" style="width:100%">GENERATE '+mlabel(month).toUpperCase()+' CHARGES</button>'}</div>${S.ctypes.filter(c=>c.calc!=='sys'&&!c.deleted).map(c=>`<div class="tc"><h3>${esc(c.name)} ${c.active?'':'<span class="bd UNPAID">Off</span>'}</h3>${{rent:'Each tenant\'s own rent',fixed:money(c.amount)+' · '+c.freq+' · '+(c.applies==='some'?(c.tids||[]).length+' selected tenant(s)':'all tenants'),meter:'Water meter × '+money(S.settings.rate)+'/unit (default)',once:'One-time charge you add per tenant'}[c.calc]}<br>Preferred channel: ${esc(chName(c.ch))}<div class="acts"><button class="s" data-a="ctForm" data-i="${c.id}">EDIT</button><button class="s" data-a="ctTog" data-i="${c.id}">${c.active?'TURN OFF':'TURN ON'}</button>${c.calc==='rent'||c.calc==='meter'?'':`<button class="d wide" data-a="ctDel" data-i="${c.id}">DELETE CHARGE</button>`}</div></div>`).join('')}`;
 const sRow=(t,raw)=>{const pe=$('#sp_'+t.id);let p=prevOf(t.id).v;if(p==null&&pe&&pe.value.trim()!=='')p=Number(pe.value);const c=Number(raw);if(raw==='')return{h:'–'};if(!isFinite(c)||c<0)return{h:'<b style="color:#dc2626">⚠️ Check reading</b>',bad:1};
  if(S.readings.some(r=>r.tid===t.id&&!r.repl&&r.month>month))return{h:'<b style="color:#dc2626">⚠️ A later reading exists</b>',bad:1};if(p==null||!isFinite(p))return{h:'First reading (starting point)',ok:1,first:1,c};if(c<p)return{h:'<b style="color:#dc2626">⚠️ Lower than previous</b>',bad:1};
- const u=r2(c-p),w=unusual(t.id,u,month);return{h:u+' units · '+money(u*eff(t))+(w?' <b style="color:#b45309">⚠️ Unusual</b>':' ✓'),ok:1,warn:w,u,c,p}};
+ const u=r2(c-p),w=unusual(t.id,u,month);const ex=monthWater(t.id,month);return{h:(ex?u+' units · <b>no meter charge</b> — water for '+mlabel(month)+' is already charged ('+money(ex.amount)+', agreed amount)':u+' units · '+money(u*eff(t)))+(w?' <b style="color:#b45309">⚠️ Unusual</b>':' ✓'),ok:1,warn:w,u,c,p}};
 V.readings=()=>{const H=S.readings.filter(r=>!ui.rt||r.tid===ui.rt).sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:0).slice(0,40),last=r=>!S.readings.some(x=>x.tid===r.tid&&S.readings.indexOf(x)>S.readings.indexOf(r)&&x.month>=r.month);
  const row=t=>{const r=S.readings.find(x=>x.tid===t.id&&x.month===month&&!x.repl),w=acct(t.id).types.find(x=>x.ty==='ct_water'),L=(l,v)=>`<td data-l="${l}">${v}`,u=L('Unit',esc(t.unit))+L('Tenant',esc(t.name)),wd=L('Water due',money(w?w.due:0));
-  if(r)return`<tr>${u}${L('Previous',r.first?'—':r.prev)}${L('Current','<b>'+r.cur+'</b>')}${L('Units & charge',r.first?'Opening reading':r.units+' units · '+money(r.units*r.rate))}${L('Rate',money(r.rate))}${wd}<td>${r.first?'':`<button class="sm s" data-a="wbill" data-i="${r.id}">BILL</button> `}<button class="sm" data-a="rEdit" data-i="${r.id}">EDIT</button></tr>`;
-  const p=prevOf(t.id).v;return`<tr>${u}${L('Previous',p==null?`<input id="sp_${t.id}" data-c="sp" data-live data-i="${t.id}" type="number" inputmode="decimal" step="any" min="0" placeholder="none" style="width:90px">`:p)}${L('Current',`<input id="sr_${t.id}" data-c="sr" data-live data-i="${t.id}" type="number" inputmode="decimal" step="any" min="0" style="width:120px;font-size:1.15rem">`)}<td data-l="Units & charge" id="ss_${t.id}">–${L('Rate',money(eff(t)))}${wd}<td><button class="sm s" data-a="scanMeter" data-i="${t.id}">📷 READ METER</button></tr>`};
- return`<div class="hd"><h2>Water Reading Sheet</h2>${mSel()}</div><div class="note">Enter each tenant's <b>current</b> reading from the caretaker's book. The previous reading fills in automatically. When you save, each water charge goes onto the tenant's account.</div><div class="bar"><label class="btn" style="cursor:pointer">📷 Scan Reading Sheet<input type="file" accept="image/*" capture="environment" hidden data-c="scan"></label><label class="btn s" style="cursor:pointer;color:#111;background:#e5e7eb">📁 Upload Photo(s)<input type="file" accept="image/*" multiple hidden data-c="scan"></label><button class="s" data-a="sheetPrint">Download Reading Sheet (PDF)</button></div><div class="note">Scan: photograph the whole printed sheet, flat and in good light. DEGUM LANDLORD finds the CURRENT READING boxes and reads each one. You review every reading before anything is saved.</div><div id="scanmsg"></div><div class="tw"><table class="rt"><tr><th>Unit<th>Tenant<th>Previous<th>Current<th>Units & charge<th>Rate<th>Water due<th></tr>${actv().map(row).join('')||'<tr><td colspan=8>No active tenants.</tr>'}</table></div><div class="bar"><button class="g" data-a="sheetSave" style="width:100%">SAVE ALL READINGS</button></div><h3>Reading history</h3><div class="bar">${sel('rt',tOpts('All tenants'),ui.rt||'','data-c="rt"')}</div><div class="tw"><table class="rt"><tr><th>Date<th>Tenant<th>Previous<th>Current<th>Units<th>Water charge<th></tr>${H.map(r=>{const x=T_(r.tid)||{};return`<tr><td data-l="Date">${dmy(r.at)}<td data-l="Tenant">${esc(x.name)}<td data-l="Previous">${r.first?'—':r.prev}<td data-l="Current"><b>${r.cur}</b><td data-l="Units">${r.repl?'Meter replaced '+esc(r.repl.old)+' → '+esc(r.repl.nu):r.first?'Opening':r.units}<td data-l="Water charge">${r.first?'—':money(r.units*r.rate)}<td>${r.first?'':`<button class="sm s" data-a="wbill" data-i="${r.id}">BILL</button>`}</tr>`}).join('')||'<tr><td colspan=7>No readings yet.</tr>'}</table></div>`};
+  if(r)return`<tr>${u}${L('Previous',r.first?'—':r.prev)}${L('Current','<b>'+r.cur+'</b>')}${L('Units & charge',r.first?'Opening reading'+(r.corr?' (corrected)':''):r.corr?owcRowTxt(r):r.units+' units · '+(meterCharge(r)||!monthWater(r.tid,r.month)?money(r.units*r.rate):'no meter charge (agreed amount charged)'))}${L('Rate',money(r.rate))}${wd}<td>${r.first?'':`<button class="sm s" data-a="wbill" data-i="${r.id}">BILL</button> `}<button class="sm" data-a="rEdit" data-i="${r.id}">EDIT</button> ${owcBtn(t)}</tr>`;
+  const p=prevOf(t.id).v;return`<tr>${u}${L('Previous',p==null?`<input id="sp_${t.id}" data-c="sp" data-live data-i="${t.id}" type="number" inputmode="decimal" step="any" min="0" placeholder="none" style="width:90px">`:p)}${L('Current',`<input id="sr_${t.id}" data-c="sr" data-live data-i="${t.id}" type="number" inputmode="decimal" step="any" min="0" style="width:120px;font-size:1.15rem">`)}<td data-l="Units & charge" id="ss_${t.id}">–${L('Rate',money(eff(t)))}${wd}<td><button class="sm s" data-a="scanMeter" data-i="${t.id}">📷 READ METER</button> ${owcBtn(t)}</tr>`};
+ return`<div class="hd"><h2>Water Reading Sheet</h2>${mSel()}</div><div class="note">Enter each tenant's <b>current</b> reading from the caretaker's book. The previous reading fills in automatically. When you save, each water charge goes onto the tenant's account.</div><div class="bar"><label class="btn" style="cursor:pointer">📷 Scan Reading Sheet<input type="file" accept="image/*" capture="environment" hidden data-c="scan"></label><label class="btn s" style="cursor:pointer;color:#111;background:#e5e7eb">📁 Upload Photo(s)<input type="file" accept="image/*" multiple hidden data-c="scan"></label><button class="s" data-a="sheetPrint">Download Reading Sheet (PDF)</button></div><div class="note">Scan: photograph the whole printed sheet, flat and in good light. DEGUM LANDLORD finds the CURRENT READING boxes and reads each one. You review every reading before anything is saved.</div><div id="scanmsg"></div><div class="tw"><table class="rt"><tr><th>Unit<th>Tenant<th>Previous<th>Current<th>Units & charge<th>Rate<th>Water due<th></tr>${actv().map(row).join('')||'<tr><td colspan=8>No active tenants.</tr>'}</table></div><div class="bar"><button class="g" data-a="sheetSave" style="width:100%">SAVE ALL READINGS</button></div><h3>Reading history</h3><div class="bar">${sel('rt',tOpts('All tenants'),ui.rt||'','data-c="rt"')}</div><div class="tw"><table class="rt"><tr><th>Date<th>Tenant<th>Previous<th>Current<th>Units<th>Water charge<th></tr>${H.map(r=>{const x=T_(r.tid)||{};return`<tr><td data-l="Date">${dmy(r.at)}<td data-l="Tenant">${esc(x.name)}<td data-l="Previous">${r.first?'—':r.prev}<td data-l="Current"><b>${r.cur}</b><td data-l="Units">${r.repl?'Meter replaced '+esc(r.repl.old)+' → '+esc(r.repl.nu):r.first?'Opening'+(r.corr?' (corrected)':''):r.corr?r.units+' (was '+r.corr.unitsFrom+')':r.units}<td data-l="Water charge">${r.first?'—':money(owcChg(r))}<td>${r.first?'':`<button class="sm s" data-a="wbill" data-i="${r.id}">BILL</button>`}</tr>`}).join('')||'<tr><td colspan=7>No readings yet.</tr>'}</table></div>`};
 const payStatus=p=>p.status==='reversed'?'<span class="bd UNPAID">Reversed</span>':!p.tid?'<span class="bd UNPAID">Unmatched</span>':allocSum(p)>=p.amount?'<span class="bd PAID">Allocated ✓</span>':allocSum(p)>0?'<span class="bd PARTIAL">Partly allocated</span>':'<span class="bd PARTIAL">Not yet allocated</span>';
 const payRows=L=>`<div class="tw"><table class="rt"><tr><th>Date<th>Tenant<th>Amount<th>Channel<th>Status</tr>${L.map(p=>`<tr data-a="pView" data-i="${p.id}" style="cursor:pointer;${p.status==='reversed'?'opacity:.55':''}"><td data-l="Date">${dmy(p.date)}<td data-l="Tenant">${p.tid?esc(tname(p.tid)):'Unknown<br><small>'+esc(p.sender||p.phone)+' · '+esc(p.ref)+'</small>'}<td data-l="Amount"><b>${money(p.amount)}</b><td data-l="Channel">${esc(chName(p.ch))}<td data-l="Status">${payStatus(p)}</tr>`).join('')||'<tr><td colspan=5>No payments.</tr>'}</table></div><small>Tap a payment to see its details.</small>`;
 V.payments=()=>{const q=ui.pq.toLowerCase(),L=[...S.payments].filter(p=>(tname(p.tid)+p.ref+p.date+dmy(p.date)+p.amount+p.sender+chName(p.ch)).toLowerCase().includes(q)).sort((a,b)=>a.date<b.date?1:-1);
@@ -157,7 +157,7 @@ function repBody(){const m=month,pm=validPays().filter(p=>p.date.slice(0,7)===m)
  switch(ui.rep){case'collection':{const e=sum(cm.map(c=>c.amount)),c=sum(pm.map(opAmt)),o=sum(actv().map(t=>acct(t.id).out));return`<div class="cards">${card('Expected',money(e))}${card('Collected',money(c),'g')}${card('Outstanding (all)',money(o),'r')}${card('Collection rate',e?Math.min(100,Math.round(c/e*100))+'%':'—')}</div>${colBreakHtml(m)}`}
  case'balances':return tbl(['Tenant','Unit','Charges','Paid','Outstanding'],live().map(t=>({t,a:acct(t.id)})).filter(x=>x.a.billed||x.a.paid).map(({t,a})=>[esc(t.name),esc(t.unit),money(a.billed),money(a.paid),a.credit>0?'Credit '+money(a.credit):'<b>'+money(a.out)+'</b>']));
  case'payments':return tbl(['Date','Tenant','Channel','Reference','Amount'],pm.sort((a,b)=>a.date<b.date?-1:1).map(p=>[dmy(p.date),esc(tname(p.tid)),esc(chName(p.ch)),esc(p.ref),money(p.amount)]));
- case'water':return tbl(['Tenant','Unit','Previous','Current','Units','Water charge'],S.readings.filter(r=>r.month===m&&!r.first).map(r=>{const t=T_(r.tid)||{};return[esc(t.name),esc(t.unit),r.prev,r.cur,r.units,money(r.units*r.rate)]}));
+ case'water':return tbl(['Tenant','Unit','Previous','Current','Units','Water charge'],S.readings.filter(r=>r.month===m&&!r.first).map(r=>{const t=T_(r.tid)||{};return[esc(t.name),esc(t.unit),r.prev,r.cur,r.corr?r.units+' (was '+r.corr.unitsFrom+')':r.units,money(owcChg(r))]}));
  case'income':{const by={};validPays().filter(p=>p.date.slice(0,7)===m).forEach(p=>{(p.alloc||[]).filter(a=>!isDep(a.ty)).forEach(a=>by[a.ty]=r2((by[a.ty]||0)+a.amt));const u=r2(p.amount-allocSum(p));if(u>0)by.__un=r2((by.__un||0)+u)});return tbl(['Charge','Income received in '+mlabel(m)],Object.keys(by).map(k=>[k==='__un'?'Not yet allocated':esc(tyName(k)),money(by[k])]))}
  case'channels':return tbl(['Channel','Method','Payments (month)','Amount (month)','All time'],S.channels.map(c=>{const a=chStats(c,'month'),b=chStats(c,'all');return[esc(c.label),c.method,a.n,money(a.t),money(b.t)]}));
  case'unmatched':return payRows(S.payments.filter(p=>p.status!=='reversed'&&!p.tid));
@@ -171,21 +171,22 @@ function render0(){$('#side').innerHTML=`<h1>DEGUM LANDLORD<small style="display
 /* ---------- actions ---------- */
 const bOf=id=>S.readings.find(r=>r.id===id);
 const payOpts=()=>[['later','Allocate later (leave unallocated)'],['auto','Suggested split (oldest first)'],...S.ctypes.filter(c=>c.calc!=='sys'&&c.active&&!c.deleted).map(c=>[c.id,c.name]),...S.dtypes.map(d=>[d.id,d.name+' (held, not rent)'])];
-function savePay(o){if(!(o.amount>0))return toast('Payment amount must be greater than zero.');if(!o.date)return toast('Please enter the payment date.');if(!o.ch)return toast('Please choose the collection channel.');
+function savePay(o){if(!(o.amount>0))return toast('Payment amount must be greater than zero.');if(!o.date)return toast('Please enter the payment date.');if(!o.ch)return toast(S.channels.length?'Please choose the collection channel.':'Add a collection channel first (Settings & Backup → Collection Channels), then record the payment.');
  const d=o.ref&&S.payments.find(p=>p.ref&&p.ref.toUpperCase()===o.ref.toUpperCase());if(d)return toast('This payment reference has already been recorded.');
  const p={id:uid(),tid:o.tid||null,amount:r2(o.amount),date:o.date,time:o.time||'',method:o.method||(CH(o.ch)||{}).method||'Other',ch:o.ch,ref:(o.ref||'').trim().toUpperCase(),sender:o.sender||'',phone:o.phone||'',notes:o.notes||'',alloc:[],status:'recorded',rec:new Date().toISOString(),src:o.src||'manual'};
  if(p.tid&&o.al==='auto')p.alloc=suggestCharges(p.tid,p.amount,null);else if(p.tid&&o.al&&o.al!=='later'&&o.al!=='')p.alloc=isDep(o.al)?[{ty:o.al,amt:p.amount}]:resolveAlloc(p.tid,[{ty:o.al,amt:p.amount}],null).al;
  S.payments.push(p);audit('payment recorded',p.amount+' '+p.method);save();closeM();render();toast('Payment recorded'+(p.tid?'':' — unmatched, see Payment Inbox'));return true}
 Object.assign(A,{
  nav:i=>{view=i;render();scrollTo(0,0)},menu:()=>$('#side').classList.toggle('open'),closeM,askYes:()=>{const f=ui.cb;ui.cb=null;closeM();if(f)f()},
- clearDemo:()=>ask('Clear all demo tenants, charges and payments? Your channels and settings are kept.',()=>{S.tenants=[];S.units=[];S.depEv=[];S.charges=[];S.readings=[];S.payments=[];S.audit=[];S.demo=false;save();render()},'Clear Demo Data'),
- tForm:i=>{const t=T_(i)||{active:true,moveIn:today()};modal(`<h3>${i?'Edit':'Add'} Tenant</h3><div class="f">${fld('Full name','t_n',t.name)}${fld('Phone number','t_p',t.phone)}${fld('House / unit','t_u',t.unit)}${fld('Monthly rent (KSh)','t_r',t.rent||'','number','step=any min=0')}${fld('Water meter number','t_m',t.meter)}${fld('Opening meter reading (optional)','t_i',t.init??'','number','step=any min=0')}${fld('Own water rate (optional)','t_w',t.rate||'','number','step=any min=0')}${fld('Move-in date','t_in',t.moveIn,'date')}${fld('M-Pesa sender name (if different)','t_mp',t.mpesaName)}${i?'':fld('Opening balance owed, KSh (optional)','t_ob','','number','step=any min=0')}</div><div class="card dp"><b>Deposits (optional, held for the tenant — not rent)</b><div class="f">${fld('Security deposit (KSh)','t_d',depAmt(t,'dep_sec')||'','number','step=any min=0'+(i?' data-ex=1':''))}${fld('Water deposit (KSh)','t_dw',depAmt(t,'dep_water')||'','number','step=any min=0')}${fld('Garbage / utility deposit','t_dg',depAmt(t,'dep_garb')||'','number','step=any min=0')}${fld('Other deposit','t_do',depAmt(t,'dep_oth')||'','number','step=any min=0')}</div><div id="mi_sum">${miHtml(+t.rent||0,t.dep||[])}</div></div>${fld('Notes','t_no',t.notes)}<div class="bar"><button data-a="tSave" data-i="${i||''}">Save</button><button class="s" data-a="closeM">Cancel</button></div>`)},
+ clearDemo:()=>demoClearAsk(),
+ tForm:i=>{const t=T_(i)||{active:true,moveIn:today()};modal(`<h3>${i?'Edit':'Add'} Tenant</h3><div class="f">${fld('Full name','t_n',t.name)}${fld('Phone number','t_p',t.phone)}${fld('House / unit','t_u',t.unit)}${fld('Monthly rent (KSh)','t_r',t.rent||'','number','step=any min=0')}${fld('Water meter number','t_m',t.meter)}${owcLockedInit(t)?fld('Opening meter reading (locked)','t_i',t.init??'','number','step=any min=0 disabled')+'<div class="note">Locked, because water readings exist or the one-time correction was used. To fix a mistake use <b>Opening Reading</b> on the Water Reading Sheet.</div>':fld('Opening meter reading (optional)','t_i',t.init??'','number','step=any min=0')}${fld('Own water rate (optional)','t_w',t.rate||'','number','step=any min=0')}${fld('Move-in date','t_in',t.moveIn,'date')}${fld('M-Pesa sender name (if different)','t_mp',t.mpesaName)}${i?'':fld('Opening balance owed, KSh (optional)','t_ob','','number','step=any min=0')}</div><div class="card dp"><b>Deposits (optional, held for the tenant — not rent)</b><div class="f">${fld('Security deposit (KSh)','t_d',depAmt(t,'dep_sec')||'','number','step=any min=0'+(i?' data-ex=1':''))}${fld('Water deposit (KSh)','t_dw',depAmt(t,'dep_water')||'','number','step=any min=0')}${fld('Garbage / utility deposit','t_dg',depAmt(t,'dep_garb')||'','number','step=any min=0')}${fld('Other deposit','t_do',depAmt(t,'dep_oth')||'','number','step=any min=0')}</div><div id="mi_sum">${miHtml(+t.rent||0,t.dep||[])}</div></div>${i?'':ibForm()}${fld('Notes','t_no',t.notes)}<div class="bar"><button data-a="tSave" data-i="${i||''}">Save</button><button class="s" data-a="closeM">Cancel</button></div>`)},
  tSave:i=>{const n=val('t_n').trim(),u=val('t_u').trim();if(!n)return toast("Please enter the tenant's name.");if(!u)return toast('Please enter the house / unit.');if(live().some(t=>t.id!==i&&t.active&&t.unit.toLowerCase()===u.toLowerCase()))return toast('That unit already has an active tenant.');
+  const ib=i?null:ibRead(Math.max(0,parseFloat(val('t_r'))||0));if(ib&&ib.err)return toast(ib.err);
   const o={name:n,phone:val('t_p').trim(),unit:u,rent:Math.max(0,parseFloat(val('t_r'))||0),meter:val('t_m').trim(),init:val('t_i').trim()===''?null:(parseFloat(val('t_i'))||0),rate:parseFloat(val('t_w'))>0?parseFloat(val('t_w')):null,moveIn:val('t_in'),dep:readDep(),mpesaName:val('t_mp').trim(),notes:val('t_no')};
-  if(i)Object.assign(T_(i),o);else{const t={id:uid(),active:true,...o};S.tenants.push(t);const ob=parseFloat(val('t_ob'))||0;if(ob>0)mkCharge(t.id,'sys_open',today().slice(0,7),ob,'Opening balance')}syncUnits();save();closeM();render();toast('Tenant saved')},
+  if(i&&owcLockedInit(T_(i)))o.init=T_(i).init;let msg='Tenant saved';if(i)Object.assign(T_(i),o);else{const t={id:uid(),active:true,...o};ibAttach(t,ib);S.tenants.push(t);const ob=parseFloat(val('t_ob'))||0;if(ob>0)mkCharge(t.id,'sys_open',today().slice(0,7),ob,'Opening balance');msg=ibPostNow(t)}syncUnits();save();closeM();render();toast(msg)},
  tAct:i=>{const t=T_(i);if(live().some(x=>x.id!==i&&x.active&&x.unit.toLowerCase()===t.unit.toLowerCase()))return toast('That unit already has an active tenant.');t.active=true;save();render()},
  tDel:i=>{const t=T_(i),a=acct(i);ask(`<b>⚠️ Delete Tenant?</b><br><br>This will remove this tenant's profile and personal/unit details from the active system.<br><br>Make sure you have saved any statement or information you may need before continuing.${a.out>0?`<br><br><b>${esc(t.name)} still owes ${money(a.out)}.</b> Save their statement first.`:''}<br><br>This action cannot be easily undone.`,()=>{Object.assign(t,{name:'Former tenant',phone:'',meter:'',mpesaName:'',notes:'',rate:null,active:false,deleted:true});audit('tenant removed','unit '+t.unit);save();render();toast('Tenant deleted.')},'Delete Tenant')},
- acctView:i=>modal(stmtHtml(i,true)+`<div class="bar"><button class="g" data-a="payForm" data-i="${i}">RECORD PAYMENT</button><button class="s" data-a="stmt" data-i="${i}">STATEMENT</button><button class="s" data-a="ruleView" data-i="${i}">Recurring charges</button><button data-a="remind" data-i="${i}">WhatsApp reminder</button><button class="s" data-a="closeM">Close</button></div>`),
+ acctView:i=>modal(stmtHtml(i,true)+ibNote(T_(i))+`<div class="bar"><button class="g" data-a="payForm" data-i="${i}">RECORD PAYMENT</button><button class="s" data-a="stmt" data-i="${i}">STATEMENT</button><button class="s" data-a="ruleView" data-i="${i}">Recurring charges</button>${T_(i)&&T_(i).initBill?`<button class="s" data-a="ibView" data-i="${i}">Initial billing</button>`:''}<button data-a="remind" data-i="${i}">WhatsApp reminder</button><button class="s" data-a="closeM">Close</button></div>`),
  stmt:i=>{ui.st=i;closeM();view='statements';render()},stCopy:()=>copy(stmtText(ui.st),'✅ Statement copied.'),stShare:()=>open(wa(T_(ui.st).phone,stmtText(ui.st)),'_blank'),
  remind:i=>{const t=reminderText(i);if(t===null)return toast('This tenant has nothing outstanding.');modal(`<h3>WhatsApp Reminder Preview</h3><p><small>You can change the message before sending.</small></p><textarea id="rem_t" rows="14">${esc(t)}</textarea><div class="bar"><button class="g" data-a="remSend" data-i="${i}">Send via WhatsApp</button><button class="s" data-a="remCopy">Copy</button><button class="s" data-a="closeM">Close</button></div>`)},
  /* charges */
@@ -194,16 +195,18 @@ Object.assign(A,{
  ctSave:i=>{const n=val('c_n').trim();if(!n)return toast('Please enter a name.');const old=TY(i),o={name:n,ch:val('c_ch')};if(!old||(old.calc!=='rent'&&old.calc!=='meter')){const a=parseFloat(val('c_a'))||0,calc=val('c_c')||'fixed';if(calc==='fixed'&&!(a>0))return toast('Enter the amount (greater than zero).');Object.assign(o,{calc,amount:a,freq:calc==='once'?'once':(val('c_f')||'monthly'),applies:val('c_ap')||'all',tids:[...document.querySelectorAll?[...document.querySelectorAll('.ctt')].filter(x=>x.checked).map(x=>x.value):[]]})}
   if(old)Object.assign(old,o);else S.ctypes.push({id:'ct_'+uid(),active:true,...o});save();closeM();render();toast('Saved')},
  ctTog:i=>{const c=TY(i);c.active=!c.active;save();render()},
- chgForm:i=>modal(`<h3>Add Charge — ${esc(tname(i))}</h3><label>Charge${sel('g_t',S.ctypes.filter(c=>c.calc!=='sys'&&c.calc!=='meter'&&!c.deleted).map(c=>[c.id,c.name]),'ct_other')}</label>${fld('Amount (KSh)','g_a','','number','step=any min=0')}${fld('Description (optional)','g_d')}${fld('Month','g_m',month,'month')}<div class="bar"><button data-a="chgSave" data-i="${i}">Add Charge</button><button class="s" data-a="closeM">Cancel</button></div>`),
- chgSave:i=>{const a=parseFloat(val('g_a'));if(!(a>0))return toast('Enter the amount (greater than zero).');mkCharge(i,val('g_t'),val('g_m')||month,a,val('g_d').trim()||tyName(val('g_t')));save();closeM();render();toast('Charge added')},
+ chgForm:i=>modal(`<h3>Add Charge — ${esc(tname(i))}</h3><label>Charge${sel('g_t',S.ctypes.filter(c=>c.calc!=='sys'&&c.calc!=='meter'&&!c.deleted).map(c=>[c.id,c.name]),'ct_other')}</label>${fld('Amount (KSh)','g_a','','number','step=any min=0')}${fld('Description (optional)','g_d')}${fld('Month','g_m',month,'month')}${fld('Due date (optional)','g_due','','date')}<div class="note">If you leave the due date empty it is the next usual due day (day ${Math.min(28,Math.max(1,+S.settings.due||5))} of the month) on or after today, so a charge you add now is not already overdue. Type an earlier date only for an arrear that was really already due.</div><div class="bar"><button data-a="chgSave" data-i="${i}">Add Charge</button><button class="s" data-a="closeM">Cancel</button></div>`),
+ chgSave:i=>{const a=parseFloat(val('g_a'));if(!(a>0))return toast('Enter the amount (greater than zero).');
+  const ty=val('g_t'),mo=val('g_m')||month,desc=val('g_d').trim()||tyName(ty),due=val('g_due')||manualDue(mo),add=()=>{mkCharge(i,ty,mo,a,desc,{due});save();closeM();render();toast('Charge added (due '+dmy(due)+')')},d=chargeDup(i,ty,mo,a,desc);
+  if(d)return ask(d,add,'Add Another Charge');add()},
  /* water meter */
- undoR:i=>{const r=bOf(i);if(!r)return;if(S.readings.some(x=>x.tid===r.tid&&x.month>r.month))return toast('Only the latest reading of a tenant can be undone.');const ch=S.charges.find(c=>c.rid===i),al=ch?S.payments.some(p=>p.status!=='reversed'&&p.tid===r.tid&&(p.alloc||[]).some(a=>a.ty==='ct_water')):false;
+ undoR:i=>{const r=bOf(i);if(!r)return;if(r.corr)return toast(OWC_LOCK);if(S.readings.some(x=>x.tid===r.tid&&x.month>r.month))return toast('Only the latest reading of a tenant can be undone.');const ch=S.charges.find(c=>c.rid===i),al=ch?S.payments.some(p=>p.status!=='reversed'&&p.tid===r.tid&&(p.alloc||[]).some(a=>a.ty==='ct_water')):false;
   ask(`Undo the ${mlabel(r.month)} reading (${r.prev} → ${r.cur})? ${ch?'The water charge of '+money(ch.amount)+' will be removed.':''}${al?' Water payments already allocated stay on the account and will show as credit.':''}`,()=>{S.readings=S.readings.filter(x=>x.id!==i);if(ch)S.charges=S.charges.filter(c=>c.id!==ch.id);audit('reading undone',JSON.stringify(r));save();render();toast('Reading undone.')},'Undo Reading')},
  rForm:i=>{const t=T_(i);modal(`<h3>Replace Water Meter — ${esc(t.name)} (${esc(t.unit)})</h3><p>Old meter: <b>${esc(t.meter)}</b> · Last reading: <b>${prevOf(i).v??'none'}</b><br><small>Save the old meter's final reading first.</small></p><div class="f">${fld('New meter number','m_n','')}${fld('Replacement date','m_d',today(),'date')}${fld('New meter opening reading','m_o','0','number','step=any min=0')}</div>${fld('Reason / notes (optional)','m_r','')}<div class="bar"><button data-a="rSave" data-i="${i}">Save Replacement</button><button class="s" data-a="closeM">Cancel</button></div>`)},
  rSave:i=>{const t=T_(i),nm=val('m_n').trim(),d=val('m_d'),o=Number(val('m_o'));if(!nm)return toast('Please enter the new meter number.');if(!d)return toast('Please enter the replacement date.');if(val('m_o').trim()===''||!isFinite(o)||o<0)return toast('Enter the new meter opening reading (0 or more).');
   S.readings.push({id:uid(),tid:i,month:d.slice(0,7),prev:o,cur:o,units:0,rate:eff(t),at:d,first:true,repl:{old:t.meter,nu:nm,notes:val('m_r')}});t.meter=nm;audit('meter replaced','unit '+t.unit);save();closeM();render();toast('Meter replaced. The next reading starts from '+o+'.')},
- wbill:i=>{const r=bOf(i),t=T_(r.tid),a=acct(r.tid),w=a.types.find(x=>x.ty==='ct_water'),h=`<div class="bill"><div class="bh">${esc(S.settings.prop)}</div><h2>WATER BILL</h2><table class="kv"><tr><td>Tenant<td>${esc(t.name)}<tr><td>House<td>${esc(t.unit)}<tr><td>Billing period<td>${period(r.month)}<tr><td>Previous reading<td>${r.prev}<tr><td>Current reading<td>${r.cur}<tr><td>Consumption<td>${r.units} units<tr><td>Rate<td>${money(r.rate)} / unit<tr><td>Water charge<td>${money(r.units*r.rate)}<tr><td>Water still due<td>${money(w?w.due:0)}<tr class="t"><td>TOTAL OUTSTANDING ON ACCOUNT<td>${money(a.out)}</table><div style="font-size:11px;color:#6b7280;border-top:1px solid #ccc;padding-top:6px;margin-top:8px;font-size:10px;color:#98A2B3">DEGUM LANDLORD • Developed by Degum Enterprises</div></div>`;ui.wb={h,i};modal(h+`<div class="bar"><button data-a="wbPrint">Print / Save as PDF</button><button class="g" data-a="wbCopy">Copy WhatsApp Bill</button><button class="s" data-a="closeM">Close</button></div>`)},
- wbPrint:()=>doPrint(ui.wb.h),wbCopy:()=>{const r=bOf(ui.wb.i),t=T_(r.tid),a=acct(r.tid);copy(`💧 WATER BILL — ${mlabel(r.month).toUpperCase()}\n\nHello ${t.name},\n🏠 House: ${t.unit}\n\nPrevious Reading: ${r.prev}\nCurrent Reading: ${r.cur}\nConsumption: ${r.units} units\nRate: ${money(r.rate)} per unit\n\nWater charge: ${money(r.units*r.rate)}\n${a.credit>0?'💚 CREDIT BALANCE: '+money(a.credit):a.out>0?'TOTAL OUTSTANDING ON ACCOUNT: '+money(a.out):'✅ PAID IN FULL'}\n\nThank you.\nDegum Landlord\nDeveloped by Degum Enterprises`,'✅ Bill message copied.')},
+ wbill:i=>{const r=bOf(i),t=T_(r.tid),a=acct(r.tid),w=a.types.find(x=>x.ty==='ct_water'),h=`<div class="bill"><div class="bh">${esc(S.settings.prop)}</div><h2>WATER BILL</h2><table class="kv"><tr><td>Tenant<td>${esc(t.name)}<tr><td>House<td>${esc(t.unit)}<tr><td>Billing period<td>${period(r.month)}<tr><td>Previous reading<td>${owcO(r).prev}<tr><td>Current reading<td>${r.cur}<tr><td>Consumption<td>${owcO(r).units} units${r.corr?'<tr><td>Note<td>Opening reading later corrected ('+r.corr.from+' → '+r.corr.to+'). This bill is unchanged; the difference is billed separately.':''}<tr><td>Rate<td>${money(r.rate)} / unit<tr><td>Water charge<td>${wbAmt(r)}${wbDueRow(r)}<tr><td>Water still due<td>${money(w?w.due:0)}<tr class="t"><td>TOTAL OUTSTANDING ON ACCOUNT<td>${money(a.out)}</table><div style="font-size:11px;color:#6b7280;border-top:1px solid #ccc;padding-top:6px;margin-top:8px;font-size:10px;color:#98A2B3">DEGUM LANDLORD • Developed by Degum Enterprises</div></div>`;ui.wb={h,i};modal(h+`<div class="bar"><button data-a="wbPrint">Print / Save as PDF</button><button class="g" data-a="wbCopy">Copy WhatsApp Bill</button><button class="s" data-a="closeM">Close</button></div>`)},
+ wbPrint:()=>doPrint(ui.wb.h),wbCopy:()=>{const r=bOf(ui.wb.i),t=T_(r.tid),a=acct(r.tid);copy(`💧 WATER BILL — ${mlabel(r.month).toUpperCase()}\n\nHello ${t.name},\n🏠 House: ${t.unit}\n\nPrevious Reading: ${owcO(r).prev}\nCurrent Reading: ${r.cur}\nConsumption: ${owcO(r).units} units${r.corr?'\nNote: the opening reading was later corrected. This bill is unchanged; the difference is billed separately.':''}\nRate: ${money(r.rate)} per unit\n\nWater charge: ${wbAmt(r)}${wbDueTxt(r)}\n${a.credit>0?'💚 CREDIT BALANCE: '+money(a.credit):a.out>0?'TOTAL OUTSTANDING ON ACCOUNT: '+money(a.out):'✅ PAID IN FULL'}\n\nThank you.\nDegum Landlord\nDeveloped by Degum Enterprises`,'✅ Bill message copied.')},
  /* payments */
  quickPay:()=>{const lab=val('q_t').trim(),t=lab?actv().find(x=>tlabel(x)===lab):null;if(lab&&!t)return toast('Tenant not found. Pick one from the list, or leave it empty to record an unmatched payment.');savePay({tid:t?t.id:null,amount:parseFloat(val('q_a')),date:val('q_d'),ch:val('q_ch'),ref:val('q_r'),notes:val('q_n'),al:'later',src:'quick'})},
  payForm:(i,b)=>{const pre=i&&i!=='missing'&&!(i instanceof Object)&&T_(i)?{tid:i}:{};const d=b&&b.miss?b:Object.assign({tid:'',amount:'',date:today(),method:'M-Pesa',ch:'',ref:'',sender:'',phone:'',al:'later'},pre,b&&b.miss?b:{});
@@ -302,11 +305,11 @@ Object.assign(A,{
  pView:i=>{const p=S.payments.find(x=>x.id===i);if(!p)return;const al=p.alloc||[],un=r2(p.amount-allocSum(p));modal(`<h3>Payment Details</h3><b style="font-size:1.5rem">${money(p.amount)}</b><p>Tenant: <b>${p.tid?esc(tname(p.tid)):'Unknown (not matched yet)'}</b><br>Channel: ${esc(chName(p.ch))} · ${esc(p.method)}<br>Reference: ${esc(p.ref)||'—'}<br>Date: ${dmy(p.date)} ${esc(p.time||'')}<br>Sender: ${esc(p.sender)||'—'} ${esc(p.phone)}<br>Recorded: ${new Date(p.rec).toLocaleString('en-GB')}${p.notes?'<br>Notes: '+esc(p.notes):''}</p><h4>Allocation</h4><p>${p.status==='reversed'?'Reversed on '+new Date(p.rev.at).toLocaleDateString('en-GB'):!p.tid?'Not yet matched to a tenant':al.length?al.map(a=>esc(tyName(a.ty))+' — '+money(a.amt)).join('<br>')+(un>0?'<br>Held as tenant credit (not yet allocated): '+money(un):''):'Not yet allocated'}</p><p>Status: ${payStatus(p)}</p><div class="bar">${p.status==='reversed'?'':(p.tid?`<button data-a="allocForm" data-i="${p.id}">${al.length?'Change allocation':'Allocate payment'}</button>`:`<button class="g" data-a="matchForm" data-i="${p.id}">Match to tenant</button>`)+`<button class="d" data-a="pRev" data-i="${p.id}">Reverse payment</button>`}<button class="s" data-a="closeM">Close</button></div>`)},
  chgDel:i=>{const c=S.charges.find(x=>x.id===i);if(!c)return;ask(`Delete this charge?<br><b>${esc(c.desc)}</b> — ${money(c.amount)} (${mlabel(c.month)})<br>The tenant's balance will go down by ${money(c.amount)}. It stays in the history as deleted.${c.rid?'<br><small>The meter reading is not removed. To remove both, use Edit → Remove Reading on the Water Reading Sheet.</small>':''}`,()=>{c.cancelled=true;c.deletedAt=new Date().toISOString();audit('charge deleted',c.desc+' '+c.amount);save();closeM();render();toast('Charge deleted.')},'Delete Charge')},
  ctDel:i=>{const c=TY(i);ask(`Delete the charge type <b>${esc(c.name)}</b>?<br>It will no longer be created for tenants. Charges already on tenant accounts stay (delete those individually from the tenant's account).`,()=>{c.deleted=true;c.active=false;audit('charge type deleted',c.name);save();render();toast('Charge deleted.')},'Delete Charge')},
- sheetSave:force=>{const rows=actv().filter(t=>!S.readings.some(r=>r.tid===t.id&&r.month===month&&!r.repl)).map(t=>({t,raw:val('sr_'+t.id).trim()})).filter(x=>x.raw!=='').map(x=>({...x,...sRow(x.t,x.raw)}));if(!rows.length)return toast('Enter at least one reading.');
+ sheetSave:force=>{const rows=actv().filter(t=>!S.readings.some(r=>r.tid===t.id&&r.month===month&&!r.repl)).map(t=>({t,raw:val('sr_'+t.id).trim()})).filter(x=>x.raw!=='').map(x=>({...x,...sRow(x.t,x.raw),ex:monthWater(x.t.id,month)}));if(!rows.length)return toast('Enter at least one reading.');
   const bad=rows.filter(x=>x.bad),good=rows.filter(x=>x.ok),warn=good.filter(x=>x.warn);if(warn.length&&force!=='1')return ask(`⚠️ <b>Unusual Consumption</b><br>${warn.map(x=>esc(x.t.name)+' ('+x.u+' units)').join(', ')}<br>Please verify these readings. Save all readings anyway?`,()=>A.sheetSave('1'),'Save anyway');
-  good.forEach(x=>{const r={id:uid(),tid:x.t.id,month,prev:x.first?x.c:x.p,cur:x.c,units:x.first?0:x.u,rate:eff(x.t),at:today(),first:!!x.first};S.readings.push(r);if(!x.first)mkCharge(x.t.id,'ct_water',month,x.u*eff(x.t),'Water '+x.u+' units',{rid:r.id})});save();render();toast(good.length+' reading'+(good.length==1?'':'s')+' saved — water charges added'+(bad.length?'. '+bad.length+' need checking and were not saved.':'.'))},
- rEdit:i=>{const r=bOf(i),t=T_(r.tid);modal(`<h3>Edit Reading — ${esc(t.name)} (${esc(t.unit)})</h3><p>${mlabel(r.month)} · Previous reading: <b>${r.first?'—':r.prev}</b></p>${fld('Current reading','e_c',r.cur,'number','step=any min=0')}<div class="bar"><button data-a="rEditSave" data-i="${i}">Save Correction</button><button class="d" data-a="undoR" data-i="${i}">Remove Reading</button><button class="s" data-a="closeM">Cancel</button></div>`)},
- rEditSave:i=>{const r=bOf(i),raw=val('e_c').trim(),c=Number(raw);if(raw===''||!isFinite(c)||c<0)return toast('Enter a valid reading (0 or more).');if(S.readings.some(x=>x.tid===r.tid&&!x.repl&&x!==r&&x.month>r.month))return toast('Only the latest reading can be corrected.');if(!r.first&&c<r.prev)return toast('Current reading cannot be lower than the previous reading.');
+  good.forEach(x=>{const r={id:uid(),tid:x.t.id,month,prev:x.first?x.c:x.p,cur:x.c,units:x.first?0:x.u,rate:eff(x.t),at:today(),first:!!x.first};S.readings.push(r);if(!x.first&&!x.ex)mkCharge(x.t.id,'ct_water',month,x.u*eff(x.t),'Water '+x.u+' units',{rid:r.id,due:waterDue(month)})});save();render();toast(good.length+' reading'+(good.length==1?'':'s')+' saved'+((good.some(x=>!x.first&&!x.ex)||!good.some(x=>x.ex))?' — water charges added'+(good.some(x=>!x.first&&!x.ex)?' (due '+dmy(waterDue(month))+')':''):'')+(good.some(x=>x.ex)?'. '+good.filter(x=>x.ex).length+' saved without a meter charge because water for '+mlabel(month)+' was already charged as an agreed amount':'')+(bad.length?'. '+bad.length+' need checking and were not saved.':'.'))},
+ rEdit:i=>{const r=bOf(i),t=T_(r.tid);if(r.corr)return modal(`<h3>Edit Reading</h3><div class="note">${esc(OWC_LOCK)}</div><div class="bar"><button class="s" data-a="closeM">Close</button></div>`);modal(`<h3>Edit Reading — ${esc(t.name)} (${esc(t.unit)})</h3><p>${mlabel(r.month)} · Previous reading: <b>${r.first?'—':r.prev}</b></p>${fld('Current reading','e_c',r.cur,'number','step=any min=0')}<div class="bar"><button data-a="rEditSave" data-i="${i}">Save Correction</button><button class="d" data-a="undoR" data-i="${i}">Remove Reading</button><button class="s" data-a="closeM">Cancel</button></div>`)},
+ rEditSave:i=>{const r=bOf(i);if(r&&r.corr)return toast(OWC_LOCK);const raw=val('e_c').trim(),c=Number(raw);if(raw===''||!isFinite(c)||c<0)return toast('Enter a valid reading (0 or more).');if(S.readings.some(x=>x.tid===r.tid&&!x.repl&&x!==r&&x.month>r.month))return toast('Only the latest reading can be corrected.');if(!r.first&&c<r.prev)return toast('Current reading cannot be lower than the previous reading.');
   const u=r.first?0:r2(c-r.prev),ch=S.charges.find(x=>x.rid===i&&!x.cancelled),go=()=>{r.cur=c;if(r.first)r.prev=c;else{r.units=u;if(ch){ch.amount=r2(u*r.rate);ch.desc='Water '+u+' units'}}audit('reading corrected',r.month+' '+c);save();closeM();render();toast('Reading corrected.')};
   if(ch&&S.payments.some(p=>p.status!=='reversed'&&p.tid===r.tid&&(p.alloc||[]).some(a=>a.ty==='ct_water')))ask(`This tenant already has payments allocated to water. The water charge will change from ${money(ch.amount)} to ${money(u*r.rate)} and the balance will be recalculated. Continue?`,go,'Correct Reading');else go()},
  scanMeter:i=>{const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.setAttribute('capture','environment');inp.onchange=async()=>{const f=inp.files[0];if(!f)return;modal('<h3>Reading the meter…</h3><div class="note">Please wait. (Needs internet the first time.)</div>');let w=null;
@@ -324,7 +327,7 @@ function backupText(){const ac=live().map(t=>({tenantId:t.id,...acct(t.id)}));re
 function importJson(x){try{const j=JSON.parse(x);if(!j.appVersion||!Array.isArray(j.tenants)||!Array.isArray(j.charges)||!Array.isArray(j.payments)||!Array.isArray(j.channels)||!Array.isArray(j.chargeTypes))throw 0;{const bad=validateBackup(j);if(bad.length)return modal(`<h3>This backup can't be used</h3><div class="note er">Your current records were NOT changed.</div><p>${bad.map(esc).join('<br>')}</p><button class="s" data-a="closeM">Close</button>`)}ui.imp=j;modal(`<h3>Backup detected</h3><p>Export date: ${new Date(j.exportedAt).toLocaleString('en-GB')}<br>Tenants: ${j.tenants.length}<br>Charges: ${j.charges.length}<br>Payments: ${j.payments.length}<br>Channels: ${j.channels.length}</p><div class="note er">Replacing will overwrite all current data on this device.</div><div class="bar"><button class="d" data-a="doImp">Replace Current Data</button><button class="s" data-a="closeM">Cancel</button></div>`)}catch(e){toast('That is not a valid backup.')}}
 
 /* ===== v3 additions: Property→Units, ledger, PIN, nav ===== */
-function syncUnits(){S.v=4;S.depEv=S.depEv||[];if(!S.dtypes||!S.dtypes.length)S.dtypes=[{id:'dep_sec',name:'Security Deposit'},{id:'dep_water',name:'Water Deposit'},{id:'dep_garb',name:'Garbage / Utility Deposit'},{id:'dep_oth',name:'Other Deposit'}];if(!S.ctypes.some(c=>c.id==='sys_damage'))S.ctypes.push({id:'sys_damage',name:'Damage / Repair',calc:'sys',active:false});S.props=S.props||[];S.units=S.units||[];if(!S.props.length)S.props.push({id:'p1',name:S.settings.prop||'My Property'});S.props[0].name=S.settings.prop||S.props[0].name;
+function syncUnits(){S.v=4;S.depEv=S.depEv||[];if(!S.dtypes||!S.dtypes.length)S.dtypes=[{id:'dep_sec',name:'Security Deposit'},{id:'dep_water',name:'Water Deposit'},{id:'dep_garb',name:'Garbage / Utility Deposit'},{id:'dep_oth',name:'Other Deposit'}];if(!S.ctypes.some(c=>c.id==='sys_damage'))S.ctypes.push({id:'sys_damage',name:'Damage / Repair',calc:'sys',active:false});if(!S.ctypes.some(c=>c.id==='sys_wadj'))S.ctypes.push({id:'sys_wadj',name:'Water Adjustment',calc:'sys',active:false});S.props=S.props||[];S.units=S.units||[];if(!S.props.length)S.props.push({id:'p1',name:S.settings.prop||'My Property'});S.props[0].name=S.settings.prop||S.props[0].name;
  live().forEach(t=>{if(!t.unit)return;let u=S.units.find(x=>x.name.toLowerCase()===t.unit.toLowerCase());if(!u){u={id:'u_'+uid(),pid:S.props[0].id,name:t.unit,rent:+t.rent||0};S.units.push(u)}t.uid=u.id;if(t.active&&+t.rent>0)u.rent=+t.rent})}
 const occ=u=>actv().find(t=>t.uid===u.id);
 V.units=()=>{const L=S.units.slice().sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})),o=L.filter(occ).length;
@@ -346,7 +349,7 @@ Object.assign(A,{
  unlock:async()=>{const h=await hp(val('pin_in'));if(h===localStorage.getItem(PK)){$('#lock').classList.remove('on');$('#lock').innerHTML=''}else{toast('Wrong PIN. Try again.');const e=$('#pin_in');if(e)e.value=''}},
  showLock,pinForm:()=>modal(`<h3>${hasPin()?'Change':'Set'} PIN</h3>${fld('New PIN (4 to 8 digits)','pn1','','password','inputmode="numeric" maxlength="8"')}${fld('Type it again','pn2','','password','inputmode="numeric" maxlength="8"')}<div class="bar"><button data-a="pinSave">Save PIN</button><button class="s" data-a="closeM">Cancel</button></div>`),
  pinSave:async()=>{const a=val('pn1');if(!/^\d{4,8}$/.test(a))return toast('Use 4 to 8 digits.');if(a!==val('pn2'))return toast('The two PINs do not match.');try{localStorage.setItem(PK,await hp(a))}catch(e){return toast('Could not save the PIN.')}closeM();render();toast('PIN saved')},
- pinOff:()=>ask('Turn off the PIN lock? Anyone who opens this phone will see your records.',()=>{try{localStorage.removeItem(PK)}catch(e){}render();toast('PIN turned off')},'Turn Off PIN'),
+ pinOff:()=>ask('Turn off the PIN lock? Anyone who opens this phone will see your records.',()=>{try{localStorage.removeItem(PK)}catch(e){}if(localStorage.getItem(PK)!==null)return toast('Could not turn off the PIN. It is still ON.');render();toast('PIN turned off')},'Turn Off PIN'),
  forgotPin:()=>ask('Erase ALL data on this phone and remove the PIN? You can then restore from a JSON backup file. This cannot be undone.',()=>{try{localStorage.removeItem(K);localStorage.removeItem(PK)}catch(e){}location.reload()},'Erase and Reset')
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='pin_in')A.unlock()});
@@ -587,9 +590,15 @@ const accessBanner=()=>{const r=ACC;if(!r||r.blocked||r.remaining==null)return''
 /* ===== Pre-launch additions: billing preview, payment receipts, dashboard "needs attention", backup status & safer restore ===== */
 /* --- monthly billing: show what WILL be created before creating it (same rules as genMonth, nothing is written here) --- */
 Object.assign(A,{
- genMonth:()=>{const m=month,p=genPlan(m),ks=Object.keys(p.by);if(!ks.length)return toast('Nothing new to create — '+mlabel(m)+' charges already exist for every tenant.');
-  modal(`<h3>Generate ${mlabel(m)} charges</h3><p>${p.tenants} tenant${p.tenants==1?'':'s'}</p><p>${ks.map(k=>p.by[k].n+' × '+esc(p.by[k].name)+' — '+money(p.by[k].t)).join('<br>')}</p><p><b>Total: ${money(p.total)}</b></p><div class="note">Only missing charges are created. Charges that already exist for ${mlabel(m)} are left alone. Water is billed from meter readings, not here.</div><div class="bar"><button class="g" data-a="genOk">Generate Charges</button><button class="s" data-a="closeM">Cancel</button></div>`)},
- genOk:()=>{const n=genMonth(month);audit('charges generated',mlabel(month)+' · '+n);save();closeM();render();toast(n+' charge'+(n==1?'':'s')+' created for '+mlabel(month))}
+ genMonth:i=>{ui.gr=0;A.genShow(i)},
+ genRem:i=>{ui.gr=1;A.genShow(i)},
+ genShow:i=>{const m=/^\d{4}-\d{2}$/.test(i||'')?i:month,cm=today().slice(0,7);ui.gm=m;
+  if(m>cm&&ui.gf!==m)return modal(`<h3>${mlabel(m)} has not started yet</h3><div class="note" style="border-left:4px solid #d97706"><b>⚠ Future month.</b> Today is ${dmy(today())}. Generating now adds ${mlabel(m)} rent and other charges to every tenant's balance before that month has begun. Normally you generate a month's charges during that month. Continue only if you really bill ahead.</div><div class="bar"><button class="d" data-a="genFuture">I understand — preview ${mlabel(m)} charges</button><button class="s" data-a="closeM">Cancel</button></div>`);
+  const p=genPlan(m,!!ui.gr),ks=Object.keys(p.by);if(!ks.length){ui.gm=null;ui.gf=null;ui.gr=0;return toast('Nothing new to create — '+mlabel(m)+' charges already exist for every tenant.')}
+  const late=p.dues.some(d=>d<today());
+  modal(`<h3>Generate ${mlabel(m)} charges</h3><p>${p.tenants} tenant${p.tenants==1?'':'s'}</p><p>${ks.map(k=>p.by[k].n+' × '+esc(p.by[k].name)+' — '+money(p.by[k].t)).join('<br>')}</p><p><b>Total: ${money(p.total)}</b></p><p>Due: <b>${p.dues.map(dmy).join(' / ')}</b> (the month after ${mlabel(m)})${late?'<br><span style="color:#b91c1c">That date has already passed, so these charges will show as <b>overdue</b> as soon as they are created. You can change a charge\'s due date afterwards if you agreed something different.</span>':''}</p><div class="note">Only missing charges are created. Charges that already exist for ${mlabel(m)} are left alone. Earlier months\' unpaid charges stay on each tenant's account. Water is billed from meter readings, not here.${ui.gr?' Tenants who were not yet registered for '+mlabel(m)+', and charges you deleted on purpose, are left out.':''}</div><div class="bar"><button class="g" data-a="genOk">Generate Charges</button><button class="s" data-a="closeM">Cancel</button></div>`)},
+ genFuture:()=>{if(!ui.gm)return;ui.gf=ui.gm;A.genShow(ui.gm)},
+ genOk:()=>{const m=ui.gm||month,cm=today().slice(0,7);if(m>cm&&ui.gf!==m){closeM();return toast('Confirm first that you want to bill a month that has not started.')}const n=genMonth(m,null,!!ui.gr);audit('charges generated',mlabel(m)+' · '+n);save();closeM();ui.gm=null;ui.gf=null;ui.gr=0;render();toast(n+' charge'+(n==1?'':'s')+' created for '+mlabel(m))}
 });
 /* --- payment receipts: numbered once, from the payment itself (no new money records) --- */
 const rcpNum=r=>+String(r||'').replace(/\D/g,'')||0,rcpNext=()=>S.payments.reduce((m,p)=>Math.max(m,rcpNum(p.rcp)),0)+1;
@@ -614,10 +623,11 @@ Object.assign(A,{
 /* --- dashboard: units + what needs action (each item opens the right place) --- */
 V.dashboard=()=>{const td=today(),as=owing().map(t=>({t,a:acct(t.id)})),od=as.filter(x=>isOverdue(x.t.id)).length,un=S.payments.filter(p=>p.status!=='reversed'&&!p.tid).length,pa=S.payments.filter(p=>p.status!=='reversed'&&p.tid&&allocSum(p)<p.amount-.005).length,
   pr=(S.settlements||[]).filter(x=>x.status==='confirmed'&&soRefund(x).rem>0).length,wOn=S.ctypes.some(c=>c.id==='ct_water'&&c.active),wm=wOn?actv().filter(t=>!S.readings.some(r=>r.tid===t.id&&r.month===month&&!r.repl)).length:0,tot=S.units.length,oc=S.units.filter(occ).length,
+  rm=remMonths(),rp=genPlanRO(rm),gen=rm.map(m=>{const g=rp[m];return g&&g.tenants>0?`<button class="s" data-a="genRem" data-i="${m}" style="display:block;width:100%;min-height:46px;text-align:left;margin:4px 0">⚠ <b>${mlabel(m)}</b> charges not yet generated — <b>${g.tenants}</b> tenant${g.tenants==1?'':'s'} · ${money(g.total)} <span style="float:right">›</span></button>`:''}).join(''),
   it=(n,txt,go)=>n>0?`<button class="s" data-a="nav" data-i="${go}" style="display:block;width:100%;min-height:46px;text-align:left;margin:4px 0">⚠ <b>${n}</b> ${txt} <span style="float:right">›</span></button>`:'',
   items=it(od,od==1?'overdue tenant':'overdue tenants','arrears')+it(un,un==1?'unmatched payment':'unmatched payments','inbox')+it(pa,pa==1?'payment not fully allocated':'payments not fully allocated','inbox')+it(wm,wm==1?'water reading missing this month':'water readings missing this month','readings')+it(pr,pr==1?'deposit refund still to pay':'deposit refunds still to pay','tenants'),
   rec=[...S.payments].filter(p=>p.status!=='reversed').sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0).slice(0,5);
- return V.dashboard0()+colBreakHtml(month)+`<div class="card"><b>${esc(S.props[0].name)}</b><div><a data-a="nav" data-i="units" style="cursor:pointer;text-decoration:none;color:inherit">${tot} unit${tot==1?'':'s'} · <b>${oc}</b> occupied · <b>${tot-oc}</b> vacant ›</a></div></div><div class="card"><b>Needs attention</b>${items||'<div class="note ok">✓ Nothing needs your attention right now.</div>'}</div>`+
+ return V.dashboard0()+colBreakHtml(month)+`<div class="card"><b>${esc(S.props[0].name)}</b><div><a data-a="nav" data-i="units" style="cursor:pointer;text-decoration:none;color:inherit">${tot} unit${tot==1?'':'s'} · <b>${oc}</b> occupied · <b>${tot-oc}</b> vacant ›</a></div></div><div class="card"><b>Needs attention</b>${(gen+items)||'<div class="note ok">✓ Nothing needs your attention right now.</div>'}</div>`+
   `<div class="card"><b>Recent payments</b>${rec.map(p=>`<div data-a="pView" data-i="${p.id}" style="cursor:pointer;min-height:44px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E4E7EC"><span>${dmy(p.date)} · ${p.tid?esc(tname(p.tid)):'<b>Unmatched</b>'}</span><b>${money(p.amount)}</b></div>`).join('')||'<div class="note">No payments yet.</div>'}</div>`+
   '<div class="card"><b>Quick actions</b><div class="bar"><button data-a="payForm">Record Payment</button><button data-a="tForm">Add Tenant</button><button class="w" data-a="nav" data-i="readings">Water Readings</button><button class="s" data-a="nav" data-i="arrears">Send Reminders</button><button class="s" data-a="nav" data-i="charges">Add Charge</button></div></div>'};
 /* --- backup: remember when, and say so --- */
@@ -646,17 +656,31 @@ function reviseRule(tid,c,amt,from,src,x){const rs=rulesOf(tid,c.id).filter(r=>r
 function ensureRules(){S.rules=S.rules||[];S.credEv=S.credEv||[];S.settlements=S.settlements||[];S.charges.forEach(c=>{if(!c.billingYear&&c.month){c.billingYear=+c.month.slice(0,4);c.billingMonth=+c.month.slice(5,7)}});
  live().forEach(t=>{if(!t.active)return;S.ctypes.forEach(c=>{if(c.deleted||c.calc==='sys'||c.calc==='meter'||c.calc==='once'||c.freq==='once')return;
   const isRent=c.calc==='rent',app=isRent||(c.calc==='fixed'&&(c.applies!=='some'||(c.tids||[]).includes(t.id))),amt=isRent?+t.rent:+c.amount,rs=rulesOf(t.id,c.id),last=rs.filter(r=>r.active!==false).pop(),from=mFirstOf(nextFreeMonth(t.id,c.id));
-  if(!rs.length){if(app&&amt>0){S.rules.push(mkRule(t.id,c,amt,t.moveIn&&t.moveIn<=today()?t.moveIn:today().slice(0,7)+'-01','type'));if(isRent)t.rentSeen=+t.rent}return}
+  if(!rs.length){if(app&&amt>0){S.rules.push(mkRule(t.id,c,amt,t.billStart?t.billStart+'-01':(t.moveIn&&t.moveIn<=today()?t.moveIn:today().slice(0,7)+'-01'),'type'));if(isRent)t.rentSeen=+t.rent}return}
   if(!last||last.to)return;
-  if(isRent){if(t.rentSeen!==undefined&&amt>0&&+t.rent!==+t.rentSeen){reviseRule(t.id,c,amt,from,'type');t.rentSeen=+t.rent}else{const cur=ruleFor(t.id,c.id,today().slice(0,7));if(cur&&+cur.amount!==+t.rent){t.rent=+cur.amount}t.rentSeen=+t.rent}return}
+  if(isRent){if(t.rentSeen!==undefined&&amt>0&&+t.rent!==+t.rentSeen){reviseRule(t.id,c,amt,last.from>from?last.from:from,'type');t.rentSeen=+t.rent}else{const cur=ruleFor(t.id,c.id,today().slice(0,7));if(cur&&+cur.amount!==+t.rent){t.rent=+cur.amount}t.rentSeen=+t.rent}return}
   if(last.src!=='type')return;
   if(!app){last.to=dayBefore(from);last.updatedAt=new Date().toISOString();return}
-  if(amt>0&&+last.typeAmt!==amt)reviseRule(t.id,c,amt,from,'type')})})}
+  if(amt>0&&+last.typeAmt!==amt)reviseRule(t.id,c,amt,last.from>from?last.from:from,'type')})})}
 const mFirstOf=m=>m+'-01';
 /* what would be generated for billing period m (nothing is written here) */
-function genItems(m){ensureRules();const o=[];actv().forEach(t=>S.ctypes.filter(c=>c.active&&(c.calc==='rent'||c.calc==='fixed')&&c.freq!=='once').forEach(c=>{const r=ruleFor(t.id,c.id,m);if(!r)return;const amt=+r.amount;if(!(amt>0))return;if(S.charges.some(x=>x.tid===t.id&&x.ty===c.id&&x.month===m&&!x.cancelled))return;o.push({t,c,r,amt})}));return o}
-function genPlan(m){const by={},ts=new Set();let total=0;genItems(m).forEach(({t,c,amt})=>{const b=by[c.id]||(by[c.id]={name:c.name,n:0,t:0});b.n++;b.t=r2(b.t+amt);ts.add(t.id);total=r2(total+amt)});return{by,tenants:ts.size,total}}
-function genMonth(m,only){let n=0;genItems(m).filter(x=>!only||x.t.id===only).forEach(({t,c,r,amt})=>{const dd=r.dueDay?m+'-'+pad(Math.min(28,Math.max(1,+r.dueDay))):dueOf(m);mkCharge(t.id,c.id,m,amt,mlabel(m)+' '+c.name,{rid:r.id,due:dd});n++});return n}
+function genItems(m,rem,noEns){if(!noEns)ensureRules();const o=[];actv().forEach(t=>S.ctypes.filter(c=>c.active&&(c.calc==='rent'||c.calc==='fixed')&&c.freq!=='once').forEach(c=>{const r=ruleFor(t.id,c.id,m);if(!r)return;const amt=+r.amount;if(!(amt>0))return;if(S.charges.some(x=>x.tid===t.id&&x.ty===c.id&&x.month===m&&!x.cancelled))return;o.push({t,c,r,amt})}));return rem?o.filter(x=>remKeep(x,m)):o}
+/* REMINDER-ONLY filter (the Charges-screen Generate button never uses it). A charge counts as missing for a month only if: the tenant had been registered in the app by then,
+   regular billing had started for the tenant (billStart), and it is not a generated charge the landlord deleted on purpose. A tenant with no createdAt counts from this month. */
+const stampMonth=s=>{const d=new Date(s);return isNaN(d)?'':d.getFullYear()+'-'+pad(d.getMonth()+1)};
+const remKeep=(x,m)=>{const t=x.t,reg=stampMonth(t.createdAt)||today().slice(0,7);if(reg>m)return false;if(t.billStart&&t.billStart>m)return false;return!S.charges.some(c=>c.tid===t.id&&c.ty===x.c.id&&c.month===m&&c.cancelled&&c.rid&&!c.cancelSid)};
+/* months the dashboard reminder looks at: the current month and the two before it (oldest first) */
+const remMonths=()=>{const cm=today().slice(0,7),b=(m,k)=>{let y=+m.slice(0,4),mo=+m.slice(5)-k;while(mo<1){mo+=12;y--}return y+'-'+pad(mo)};return[b(cm,2),b(cm,1),cm]};
+/* Due date of a GENERATED monthly charge (rent, garbage, Wi-Fi and any other monthly type): the configured due day in the month AFTER the billing month
+   (October -> 5 Nov, December -> 5 Jan). It depends only on the billing month and the due day, never on the day the charge is generated, so a month generated late
+   is correctly overdue. A recurring rule's own due day (1-28) replaces the configured one. The day is capped at 28 so every month and year-end is safe.
+   Applies only to charges generated from now on; existing charges keep the due date they already have. Water and manual Add Charge have their own rules. */
+const genDue=(m,day)=>nextMonth(m)+'-'+pad(Math.min(28,Math.max(1,+(day||S.settings.due)||5)));
+function genPlan(m,rem,noEns){const by={},ts=new Set(),ds=new Set();let total=0;genItems(m,rem,noEns).forEach(({t,c,r,amt})=>{const b=by[c.id]||(by[c.id]={name:c.name,n:0,t:0});b.n++;b.t=r2(b.t+amt);ts.add(t.id);ds.add(genDue(m,r.dueDay));total=r2(total+amt)});return{by,tenants:ts.size,total,dues:[...ds].sort()}}
+/* READ-ONLY plans for the dashboard reminder (one per month in ms, keyed by month). genPlan runs ensureRules(), which can add or adjust recurring rules in memory, so everything is
+   worked out on ONE throw-away copy of the records: drawing the dashboard never changes or saves anything. */
+function genPlanRO(ms){const real=S,o={};try{S=JSON.parse(JSON.stringify(real));ensureRules();ms.forEach(m=>{o[m]=genPlan(m,true,true)});return o}catch(e){return{}}finally{S=real}}
+function genMonth(m,only,rem){let n=0;genItems(m,rem).filter(x=>!only||x.t.id===only).forEach(({t,c,r,amt})=>{const dd=genDue(m,r.dueDay);mkCharge(t.id,c.id,m,amt,mlabel(m)+' '+c.name,{rid:r.id,due:dd});n++});return n}
 const chBadge=r=>r.rem<=0?'<span class="bd PAID">PAID</span>':(r.partial?'<span class="bd PARTIAL">PARTIALLY PAID</span> ':'')+`<span class="bd ${r.timing==='OVERDUE'?'UNPAID':r.timing==='DUE TODAY'?'PARTIAL':'NEUTRAL'}">${r.timing}</span>`;
 /* ---- recurring-charge screen (per tenant) ---- */
 const ruleLabel=r=>r.superseded?'Replaced':r.active===false?'Off':r.to&&r.to<today()?'Ended':r.from>today()?'Starts later':'Active';
@@ -668,7 +692,7 @@ function ruleView(tid){ensureRules();const t=T_(tid);if(!t)return;const rs=(S.ru
 const rsel=tid=>S.ctypes.filter(c=>!c.deleted&&(c.calc==='rent'||c.calc==='fixed')&&c.freq!=='once').map(c=>[c.id,c.name]);
 Object.assign(A,{
  ruleView:i=>ruleView(i),
- ruleAdd:i=>modal(`<h3>Add recurring charge — ${esc(tname(i))}</h3><label>Charge${sel('ra_t',rsel(i),'')}</label>${fld('Amount (KSh per month)','ra_a','','number','step=any min=0')}${fld('Effective from','ra_f',today().slice(0,7)+'-01','date')}${fld('Ends (optional)','ra_e','','date')}${fld('Due day of month (optional, 1-28)','ra_d','','number','min=1 max=28')}<div class="bar"><button data-a="ruleAddOk" data-i="${i}">Save</button><button class="s" data-a="ruleView" data-i="${i}">Cancel</button></div>`),
+ ruleAdd:i=>modal(`<h3>Add recurring charge — ${esc(tname(i))}</h3><label>Charge${sel('ra_t',rsel(i),'')}</label>${fld('Amount (KSh per month)','ra_a','','number','step=any min=0')}${fld('Effective from','ra_f',today().slice(0,7)+'-01','date')}${fld('Ends (optional)','ra_e','','date')}${fld('Due day (optional, 1-28) — falls in the month after the billing month','ra_d','','number','min=1 max=28')}<div class="bar"><button data-a="ruleAddOk" data-i="${i}">Save</button><button class="s" data-a="ruleView" data-i="${i}">Cancel</button></div>`),
  ruleAddOk:i=>{const ty=val('ra_t'),c=TY(ty),a=parseFloat(val('ra_a')),f=val('ra_f'),e=val('ra_e'),d=val('ra_d');if(!c)return toast('Choose the charge.');if(!(a>0))return toast('Enter the amount (greater than zero).');if(!f)return toast('Enter the date it starts.');if(e&&e<f)return toast('The end date cannot be before the start date.');
   if(rulesOf(i,ty).some(r=>r.active!==false&&r.from<=(e||'9999-12-31')&&f<=(r.to||'9999-12-31')))return toast('This tenant already has that charge for those dates. Use "Change amount" instead.');
   S.rules.push(mkRule(i,c,a,f,'custom',{to:e||null,dueDay:d?Math.min(28,Math.max(1,+d)):null}));audit('recurring charge added',tname(i)+' '+c.name+' '+a);save();ruleView(i);toast('Recurring charge added.')},
@@ -681,6 +705,277 @@ Object.assign(A,{
  chDue:i=>{const c=S.charges.find(x=>x.id===i);if(!c)return;ui.cd=i;modal(`<h3>Due date — ${esc(cdesc(c))}</h3>${fld('Due date','cd_d',c.due,'date')}<div class="bar"><button data-a="chDueOk">Save</button><button class="s" data-a="closeM">Cancel</button></div>`)},
  chDueOk:()=>{const c=S.charges.find(x=>x.id===ui.cd);const d=val('cd_d');if(!c||!d)return toast('Enter a date.');c.due=d;c.dueSet=true;c.updatedAt=new Date().toISOString();save();closeM();render();toast('Due date saved.')}
 });
+/* ===== Cross-window safety (Phase 1) =====
+   Records live in localStorage as ONE json text. Two windows/tabs of the app each hold their own in-memory copy, so a plain save used to
+   overwrite whatever the other window had saved. Now: BASE = the exact text this window last loaded or wrote. Before every write we look at
+   what is stored. If it is still BASE nobody else touched it -> write. If not, we three-way merge (BASE / this window / stored) record by record,
+   and only accept the merge when the changes are independent AND the combined records pass the integrity checks below. Otherwise NOTHING is written,
+   the saved records stay exactly as they are, and a recovery screen offers to download this window's unsaved work or reload the saved records.
+   Nothing new is added to the stored data, so older/rollback versions of the app read it unchanged. */
+const tryParse=s=>{try{return JSON.parse(s)}catch(e){return undefined}};
+const jx=x=>JSON.stringify(x===undefined?null:x);
+const jr=x=>{if(x&&typeof x==='object'&&!Array.isArray(x)){const{createdAt,updatedAt,...r}=x;return JSON.stringify(r)}return jx(x)};
+const validShape=j=>!!(j&&Array.isArray(j.tenants)&&Array.isArray(j.charges)&&Array.isArray(j.payments));
+const ts=x=>x&&x.updatedAt?String(x.updatedAt):'';
+/* MINE: versions of records THIS window wrote and that are not yet confirmed as shared. If the other window's text holds one of them, it is just our own older version resurfacing, not a rival edit. */
+let LASTJ=new Map(),MINE=new Map();
+function resetLast(){LASTJ=new Map();COLL.forEach(k=>(S[k]||[]).forEach(x=>{if(x&&x.id)LASTJ.set(k+':'+x.id,jr(x))}))}
+function trackMine(){COLL.forEach(k=>(S[k]||[]).forEach(x=>{if(!x||!x.id)return;const key=k+':'+x.id,j=jr(x),p=LASTJ.get(key);if(p!==j){let m=MINE.get(key);if(!m)MINE.set(key,m=new Set());if(p!==undefined)m.add(p);m.add(j);LASTJ.set(key,j)}}))}
+function mergeById(k,bb,o,t,conf,bp){
+ const mbp=new Map((bp||[]).map(x=>[x.id,x])),mb=new Map(bb.map(x=>[x.id,x])),mo=new Map(o.map(x=>[x.id,x])),mt=new Map(t.map(x=>[x.id,x])),res=[],seen=new Set();
+ const take=id=>{const b=mb.get(id),a=mo.get(id),c=mt.get(id),sb=b?jr(b):null,sa=a?jr(a):null,sc=c?jr(c):null;
+  if(sa===sc)return c||a;            /* same on both sides (or deleted on both) */
+  if(sa===sb)return c;               /* this window did not touch it -> keep the other window's version */
+  if(sc===sb)return a;               /* the other window did not touch it -> keep ours */
+  const q=mbp.get(id),own=MINE.get(k+':'+id);if(c&&own&&own.has(jr(c)))return a;   /* the other text holds an older version that this window itself wrote */
+  if(a&&c&&q&&jr(a)===jr(q)&&ts(c)>=ts(a))return c;   /* we have no unsaved edit of it and the other version is newer (it built on ours) */
+  conf.push(k+':'+id);return c||a};  /* both changed the same record differently -> conflict */
+ t.forEach(x=>{seen.add(x.id);const r=take(x.id);if(r)res.push(r)});
+ o.forEach(x=>{if(seen.has(x.id))return;seen.add(x.id);const r=take(x.id);if(r)res.push(r)});
+ return res}
+function mergeStates(base,ours,theirs,bp){
+ const out={},conf=[],keys=[...new Set([...Object.keys(base),...Object.keys(ours),...Object.keys(theirs)])];
+ keys.forEach(k=>{const b=base[k],o=ours[k],t=theirs[k];
+  if(jx(o)===jx(b)){if(t!==undefined)out[k]=t;return}                       /* we did not change it */
+  if(jx(t)===jx(b)||jx(t)===jx(o)){if(o!==undefined)out[k]=o;return}        /* only we changed it (or identical) */
+  if(Array.isArray(o)&&Array.isArray(t)&&(Array.isArray(b)||b===undefined)){
+   const bb=b||[];
+   if([...o,...t,...bb].every(x=>x&&typeof x==='object'&&x.id!==undefined)){out[k]=mergeById(k,bb,o,t,conf,bp&&bp[k]);return}
+   if(k==='audit'){const sb=new Set(bb.map(jx)),st=new Set(t.map(jx));out[k]=[...t,...o.filter(x=>!sb.has(jx(x))&&!st.has(jx(x)))].sort((x,y)=>String(x.at)<String(y.at)?-1:String(x.at)>String(y.at)?1:0);return}}
+  if(o&&t&&typeof o==='object'&&typeof t==='object'&&!Array.isArray(o)&&!Array.isArray(t)){
+   const r={},bo=b||{};new Set([...Object.keys(bo),...Object.keys(o),...Object.keys(t)]).forEach(f=>{const fb=bo[f],fo=o[f],ft=t[f];
+    if(jx(fo)===jx(fb)){if(ft!==undefined)r[f]=ft}else if(jx(ft)===jx(fb)||jx(ft)===jx(fo)){if(fo!==undefined)r[f]=fo}else conf.push(k+'.'+f)});
+   out[k]=r;return}
+  conf.push(k)});
+ return{state:out,conflicts:conf}}
+/* checks on the COMBINED records: things two windows could each do correctly alone but not together */
+function integrityIssues(s){
+ const is=new Set(),tn=new Set((s.tenants||[]).map(x=>x.id)),ct={};(s.ctypes||[]).forEach(c=>ct[c.id]=c);
+ const refs={},rcp={},keyc={},keyi={},rd={},alloc={};
+ (s.payments||[]).forEach(p=>{if(p.ref){const r=String(p.ref).toUpperCase();refs[r]=(refs[r]||0)+1}if(p.rcp)rcp[p.rcp]=(rcp[p.rcp]||0)+1;
+  if(p.tid&&!tn.has(p.tid))is.add('orphan payment '+p.id);
+  const sum=(p.alloc||[]).reduce((a,x)=>a+(+x.amt||0),0);if(sum>(+p.amount||0)+.01)is.add('payment over-allocated '+p.id);
+  if(p.status!=='reversed')(p.alloc||[]).forEach(x=>{if(x.cid)alloc[x.cid]=(alloc[x.cid]||0)+(+x.amt||0)})});
+ (s.depEv||[]).forEach(e=>{if(!e.void&&e.kind==='apply'&&e.cid)alloc[e.cid]=(alloc[e.cid]||0)+(+e.amt||0)});
+ Object.keys(refs).forEach(r=>{if(refs[r]>1)is.add('same payment reference twice '+r)});
+ Object.keys(rcp).forEach(r=>{if(rcp[r]>1)is.add('same receipt number twice '+r)});
+ (s.charges||[]).forEach(c=>{if(c.tid&&!tn.has(c.tid))is.add('orphan charge '+c.id);if(c.cancelled)return;
+  const t=ct[c.ty];if((t&&(t.calc==='rent'||(t.calc==='fixed'&&t.freq!=='once')))||c.init||c.ty==='ct_water'||c.ty==='sys_wadj'){const k=c.tid+'|'+c.ty+'|'+c.month;keyc[k]=(keyc[k]||0)+1}else if(t&&t.calc!=='sys'&&!c.rid){const k=c.tid+'|'+c.ty+'|'+c.month+'|'+c.amount+'|'+String(c.desc||'').trim().toLowerCase();keyi[k]=(keyi[k]||0)+1}
+  if((alloc[c.id]||0)>(+c.amount||0)+.01)is.add('charge over-allocated '+c.id)});
+ Object.keys(keyc).forEach(k=>{if(keyc[k]>1)is.add('same charge twice '+k)});
+ Object.keys(keyi).forEach(k=>{if(keyi[k]>1)is.add('same extra charge twice '+k)});
+ (s.readings||[]).forEach(r=>{if(r.tid&&!tn.has(r.tid))is.add('orphan reading '+r.id);const k=r.tid+'|'+r.month;rd[k]=(rd[k]||0)+1});
+ Object.keys(rd).forEach(k=>{if(rd[k]>1)is.add('two readings in one month '+k)});
+ /* refund, deposit and credit totals are judged with the application's own functions (soRefund, depPos, acct) on the combined records,
+    so the field names can never drift and refunds that belong to no settlement (older Record Refund button) are covered too */
+ if(Array.isArray(s.dtypes)){const keep=S;S=s;try{
+  const tids=new Set([...(s.depEv||[]),...(s.credEv||[]),...(s.settlements||[])].map(x=>x.tid).filter(Boolean));
+  tids.forEach(tid=>{if(!tn.has(tid))return;
+   const dp=depPos(tid);dp.list.forEach(x=>{if(x.held<-.01)is.add('deposit refunded or used beyond what was held '+tid+' '+x.dty)});if(dp.avail<-.01)is.add('refund due is more than the deposit held '+tid);
+   if(acct(tid).creditAvail<-.01)is.add('credit refunded or used beyond what was held '+tid)});
+  (s.settlements||[]).forEach(st=>{if(st.status!=='confirmed')return;const r=soRefund(st);
+   if(r.dep.paid>r.dep.due+.01)is.add('deposit refunded twice '+st.id);if(r.cred.paid>r.cred.due+.01)is.add('credit refunded twice '+st.id)})
+ }catch(e){}finally{S=keep}}
+ /* one move-out event = ONE confirmed settlement per tenant (a reversed settlement no longer counts), however the two windows' figures look */
+ const sc={};(s.settlements||[]).forEach(st=>{if(st.status==='confirmed'&&st.tid)sc[st.tid]=(sc[st.tid]||0)+1});
+ Object.keys(sc).forEach(k=>{if(sc[k]>1)is.add('two move-out settlements for one tenant '+k)});
+ return is}
+const newIssues=(base,ours,theirs,merged)=>{const old=new Set([...integrityIssues(base),...integrityIssues(ours),...integrityIssues(theirs)]);return[...integrityIssues(merged)].filter(x=>!old.has(x))};
+function describeChanges(base){ /* plain-language list of what this window changed and could not save */
+ const L=[],lab={payments:p=>'Payment KSh '+p.amount+(p.ref?' ('+p.ref+')':'')+' — '+(typeof tname==='function'?tname(p.tid):''),charges:c=>(c.desc||c.ty)+' KSh '+c.amount+(c.cancelled?' (deleted)':'')+' — '+(typeof tname==='function'?tname(c.tid):''),tenants:t=>'Tenant '+t.name+' ('+t.unit+')',readings:r=>'Water reading '+r.cur+' — '+(typeof tname==='function'?tname(r.tid):'')};
+ ['payments','charges','tenants','readings','units','channels','ctypes','rules','depEv','credEv','settlements'].forEach(k=>{const bm=new Map(((base&&base[k])||[]).map(x=>[x.id,x]));(S[k]||[]).forEach(x=>{const b=bm.get(x.id);if(!b)L.push('New: '+(lab[k]?lab[k](x):k+' record'));else if(jr(b)!==jr(x))L.push('Changed: '+(lab[k]?lab[k](x):k+' record'))})});
+ if(jx(S.settings)!==jx(base&&base.settings))L.push('Settings changed');return L.slice(0,40)}
+function showConflict(reason,raw,base){
+ CONFLICT=true;DIRTY=true;SAVEFAIL={kind:'conflict'};hideSaveError();document.body.classList.add('cf');
+ const list=reason==='erased'?[]:describeChanges(base),why=Array.isArray(reason)?reason.slice(0,6).join('; '):reason;
+ const el=document.createElement('div');el.id='cf';el.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.94);overflow:auto;padding:14px';
+ const msg=reason==='erased'?'The saved records were <b>erased or are missing</b> (another window, or the browser cleared its storage). This window still holds a copy.':reason==='unreadable'?'The saved records <b>could not be read</b>. They have <b>not</b> been changed.':'<b>Another window or tab has saved changes to the same records.</b> To protect your data, <b>this window did NOT save</b> and the records already saved are untouched.';
+ el.innerHTML='<div style="background:#fff;border-radius:12px;padding:16px;max-width:520px;margin:20px auto"><h3 style="margin:0 0 8px">⚠️ Changes were not saved</h3><p>'+msg+'</p>'+
+ (list.length?'<p><b>Changes in this window that were NOT saved:</b></p><ul style="margin:4px 0 10px 18px;padding:0;font-size:.9em">'+list.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p style="font-size:.9em">After reloading, check the saved records and re-enter anything missing from this list.</p>':'')+
+ '<p style="font-size:.8em;color:#555">Technical detail: '+esc(String(why))+'</p>'+
+ '<div style="display:flex;flex-direction:column;gap:8px"><button class="s" id="cf_dl">1. Download this window\'s records (file)</button><button id="cf_rl">2. Reload the saved records</button>'+(reason==='erased'?'<button class="s" id="cf_keep">Save this window\'s records again</button>':'')+'</div></div>';
+ document.body.appendChild(el);
+ $('#cf_dl').onclick=()=>{try{const txt=backupText();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download='Degum-Landlord-ThisWindow-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}catch(e){alert('Could not create the file.')}};
+ $('#cf_rl').onclick=()=>location.reload();
+ const k=$('#cf_keep');if(k)k.onclick=()=>{try{const j=JSON.stringify(S);localStorage.setItem(K,j);BASE=j;ANC=tryParse(j);CONFLICT=false;DIRTY=false;document.body.classList.remove('cf');el.remove();toast('Records saved again.')}catch(e){alert('Could not save.')}};
+ return false}
+/* ANC = the last state this window KNEW was shared with storage (confirmed after a quiet moment). Merging against ANC (not just the last write)
+   means that if the browser's cross-window storage delivers two near-simultaneous writes in the wrong order and one overwrites the other,
+   the overwritten changes are noticed when the other window's text arrives and are merged back in. */
+function reconcile(raw){
+ const theirs=tryParse(raw),bp=tryParse(BASE);
+ if(!validShape(theirs))return showConflict('unreadable',raw,ANC);
+ let ep='';try{ep=localStorage.getItem(K+'_epoch')||''}catch(e){}
+ if(ep!==EPOCH){ /* the whole record set was replaced (restore) in another window: never merge old and restored records */
+  if(JSON.stringify(S)===BASE){EPOCH=ep;ANC=theirs;return theirs}
+  return showConflict('records were restored or replaced in another window',raw,ANC)}
+ if(!validShape(ANC)||!validShape(bp))return showConflict('this window has no earlier copy to compare with',raw,ANC);
+ const r=mergeStates(ANC,S,theirs,bp);
+ if(r.conflicts.length)return showConflict(r.conflicts,raw,ANC);
+ const bad=newIssues(ANC,S,theirs,r.state);
+ if(bad.length)return showConflict(bad,raw,ANC);
+ return r.state}
+let cT=0;const scheduleConfirm=()=>{clearTimeout(cT);cT=setTimeout(confirmStable,400)};
+function confirmStable(){if(CONFLICT)return;let raw;try{raw=localStorage.getItem(K)}catch(e){return}if(raw===BASE){if(!DIRTY){ANC=tryParse(BASE);MINE.clear()}return}syncFromStorage()}
+function persist(){
+ if(CONFLICT){SAVEFAIL=SAVEFAIL||{kind:'conflict'};return false}
+ try{
+  stampAll();trackMine();let json=JSON.stringify(S),merged=false;   /* remember the versions we are about to write */
+  const raw=localStorage.getItem(K);
+  if(raw===null?BASE!=='':(raw!==BASE&&raw!==json)){            /* the saved text is not what this window last saw */
+   if(raw===null)return showConflict('erased',null,ANC);
+   const m=reconcile(raw);if(m===false)return false;
+   try{localStorage.setItem(K+'_premerge',raw)}catch(e){}      /* one-step safety copy of what the other window had saved */
+   S=m;S.audit=S.audit||[];S.readings=S.readings||[];stampInit();json=JSON.stringify(S);merged=true}
+  if(json!==raw){localStorage.setItem(K,json);if(localStorage.getItem(K)!==json)throw new Error('save not confirmed');SAVEDN++}   /* only count it as saved once it reads back; a save that changes nothing is not counted */
+  BASE=json;DIRTY=false;hideSaveError();if(merged)resetLast();scheduleConfirm();
+  if(merged)setTimeout(()=>{refreshIfIdle(0);toast('Your change was saved together with changes made in another window.')},0);
+  return true
+ }catch(e){DIRTY=true;SAVEFAIL=SAVEFAIL||{kind:'storage'};if(!INACT)showSaveError(false);return false}}
+function refreshIfIdle(n){const a=document.activeElement,busy=$('#m').classList.contains('on')||(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+ if(busy){if(n<40)setTimeout(()=>refreshIfIdle(n+1),1500);return}try{render()}catch(e){}}
+function syncFromStorage(){ /* another window saved: pick up (and merge with) its records now so this window is never working from stale data */
+ if(CONFLICT||DIRTY)return;let raw;try{raw=localStorage.getItem(K)}catch(e){return}
+ if(raw===null||raw===BASE)return;if(!validShape(tryParse(raw)))return;
+ const m=reconcile(raw);if(m===false)return;
+ S=m;S.audit=S.audit||[];S.readings=S.readings||[];syncUnits();ensureRules();migrateStamps();stampInit();
+ const now=JSON.stringify(S);
+ if(now!==raw){try{localStorage.setItem(K+'_premerge',raw);localStorage.setItem(K,now)}catch(e){DIRTY=true;showSaveError(false);return}}
+ BASE=now;resetLast();scheduleConfirm();refreshIfIdle(0)}
+window.addEventListener('storage',e=>{if(e.key===K)syncFromStorage()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncFromStorage()});
+window.addEventListener('focus',syncFromStorage);window.addEventListener('pageshow',syncFromStorage);
+
+{const o=A.doImp;A.doImp=()=>{try{localStorage.setItem(K+'_epoch',uid())}catch(e){}return o()}}
+/* ===== Honest saving (Phase 2) =====
+   Every button/field action runs through runGuarded(). If a save fails during the action:
+   - the records and the screen go back to exactly how they were before the action (so no balance, receipt or list shows something that was not saved),
+   - the form/dialog the user was in is put back with what they typed,
+   - success messages produced by the action are suppressed, and a red NOT SAVED bar explains what happened,
+   - because nothing was recorded, pressing the button again records it once (no duplicates).
+   If the failure is the cross-window conflict (Phase 1) the conflict screen handles it and success messages are suppressed here too. */
+function showSaveError(partial,detail){
+ let el=document.getElementById('sv');
+ if(!el){el=document.createElement('div');el.id='sv';el.setAttribute('role','alert');el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99990;background:#b91c1c;color:#fff;padding:10px 12px;font-size:.95em;line-height:1.35;box-shadow:0 2px 8px rgba(0,0,0,.4)';document.body.appendChild(el)}
+ const t=partial==='partial'?'<b>Only PART of this action was saved.</b> The browser could not finish saving. The screen now shows exactly what IS saved — please check the tenant\'s account before doing it again.'
+  :partial===true?'<b>NOT SAVED.</b> This phone\'s browser could not store the records (storage may be full or blocked). <b>Nothing was recorded and no balance has changed.</b> What you typed is still on the screen. Export a backup, free some space, then press the button again.'
+  :'<b>The latest records could NOT be saved.</b> This phone\'s browser could not store them (storage may be full or blocked). Export a backup now.';
+ el.innerHTML=t+(detail?'<div style="opacity:.85;font-size:.85em;margin-top:3px">'+esc(detail)+'</div>':'')+' <button id="sv_ok" style="margin-top:6px;background:#fff;color:#b91c1c;border:0;border-radius:6px;padding:6px 12px;font-weight:700">OK</button>';
+ el.style.display='block';const b=document.getElementById('sv_ok');if(b)b.onclick=()=>{el.style.display='none'}}
+function hideSaveError(){const el=document.getElementById('sv');if(el)el.style.display='none'}
+const fieldVals=r=>r?[...r.querySelectorAll('input,select,textarea')].map(e=>e.type==='file'?null:(e.type==='checkbox'||e.type==='radio')?e.checked:e.value):[];
+function applyVals(root,vals){if(!root)return;const els=[...root.querySelectorAll('input,select,textarea')];if(els.length!==vals.length)return;els.forEach((e,i)=>{const v=vals[i];if(v===null)return;if(e.type==='checkbox'||e.type==='radio')e.checked=v;else e.value=v})}
+function captureUI(){const m=$('#m');return{ui:Object.assign({},ui),month,view,on:m.classList.contains('on'),html:m.innerHTML,mv:fieldVals(m),mainv:fieldVals($('#main'))}}
+function restoreUI(u,confirmOnly){const m=$('#m');if(confirmOnly){m.classList.remove('on')}else{m.innerHTML=u.html;m.classList.toggle('on',u.on);applyVals(m,u.mv)}applyVals($('#main'),u.mainv)}
+function rollbackAfterFailure(snap,u,savedN){
+ let target=snap;if(savedN>0&&BASE){target=BASE}                       /* an earlier save inside the same action did succeed: show what is really stored */
+ try{S=JSON.parse(target)}catch(e){S=JSON.parse(snap)}
+ S.audit=S.audit||[];S.readings=S.readings||[];resetLast();stampInit();DIRTY=false;
+ Object.keys(ui).forEach(k=>delete ui[k]);Object.assign(ui,u.ui);month=u.month;view=u.view;
+ try{render()}catch(e){}
+ restoreUI(u,!!u.ui.cb);const t=$('#toast');if(t)t.style.display='none'}   /* a Yes/No dialog holds on to the old records, so it is closed (nothing typed is lost) and the action is repeated from the screen that started it */
+function runGuarded(fn){
+ if(INACT)return fn();                                                   /* an action called from inside another action: the outer one guards it */
+ const snap=JSON.stringify(S),u=captureUI(),n0=SAVEDN,E0=EPOCH;let ep0=null;try{ep0=localStorage.getItem(K+'_epoch')}catch(e){}
+ INACT=1;SAVEFAIL=null;let r,err;
+ try{r=fn()}catch(e){err=e}
+ INACT=0;const f=SAVEFAIL;SAVEFAIL=null;
+ if(f&&f.kind==='storage'){const savedN=SAVEDN-n0;rollbackAfterFailure(snap,u,savedN);
+  if(savedN===0){EPOCH=E0;try{if(ep0===null)localStorage.removeItem(K+'_epoch');else localStorage.setItem(K+'_epoch',ep0)}catch(e){}}   /* a restore that failed must not leave a "records were restored" marker for other windows */
+  showSaveError(savedN>0?'partial':true)}
+ else if(f){const t=$('#toast');if(t)t.style.display='none'}              /* conflict: the conflict screen explains; no success message */
+ if(err)throw err;return r}
+
+/* A receipt is a document handed to a tenant. Its number is only issued once it is SAVED: if it cannot be saved, nothing is shown, printed, copied, sent or exported. */
+['rcpView','rcpPrint','rcpPdf','rcpWa','rcpCopy'].forEach(k=>{const o=A[k];A[k]=function(i){
+ const id=k==='rcpView'?i:ui.rc,p=S.payments.find(x=>x.id===id);
+ if(p&&p.status!=='reversed'&&!p.rcp){const had=SAVEFAIL;SAVEFAIL=null;rcpFor(p);if(SAVEFAIL)return;SAVEFAIL=had}
+ return o.apply(this,arguments)}});
+/* ===== Demo data cleanup (Phase 3) =====
+   Sample records are recognised by what they ARE (the fixed sample values the app creates), never by deleting everything:
+   anything the user added or changed is kept. No new fields are stored. */
+const SAMPLE_SET={prop:'ABC Apartments',loc:'Nairobi, Kenya',landlord:'Mrs. Landlord',phone:'0700000000'};
+const SAMPLE_CH=[{id:'ch1',label:'Rent Account',method:'Bank',d1:'Cooperative Bank',d2:'01100000000',d3:'ABC Apartments',d4:'Main Branch'},{id:'ch2',label:'Water & Utilities',method:'M-Pesa',d1:'Phone',d2:'0700000000',d3:''},{id:'ch3',label:'Cash',method:'Cash',d1:'Cash received by landlord'}];
+const SAMPLE_TEN=[['John Kamau','A03','0712345678','M003',20,15000,'J KAMAU'],['Mary Achieng','B02','0722111222','M102',50,12000,''],['Peter Otieno','C01','0733222333','M201',10,8000,'']];
+const PRISTINE_KEYS=new Set(['id','uid','name','unit','phone','meter','init','rent','rate','moveIn','active','mpesaName','notes','rentSeen','createdAt','updatedAt']);
+const isSampleChannel=c=>SAMPLE_CH.some(x=>x.id===c.id&&x.label===c.label&&x.method===c.method&&(c.d1||'')===(x.d1||'')&&(c.d2||'')===(x.d2||'')&&(c.d3||'')===(x.d3||'')&&(c.d4||'')===(x.d4||''));
+/* sample = every editable field still equals the pristine sample record (any edit, however small, makes it genuine) and the installation is still in sample mode or the tenant owns a payment the app itself created as sample data */
+const isSampleTenant=t=>{const x=SAMPLE_TEN.find(y=>t.name===y[0]);if(!x||t.deleted)return false;
+ return t.unit===x[1]&&(t.phone||'')===x[2]&&(t.meter||'')===x[3]&&+t.init===x[4]&&+t.rent===x[5]&&(t.mpesaName||'')===x[6]&&t.rate==null&&t.moveIn==='2026-01-01'&&(t.notes||'')===''&&t.active===true&&!(t.dep&&t.dep.length)&&Object.keys(t).every(k=>PRISTINE_KEYS.has(k))&&(S.demo||S.payments.some(p=>p.tid===t.id&&p.src==='demo'))};
+const looksSampleButEdited=t=>SAMPLE_TEN.some(y=>y[0]===t.name&&y[1]===t.unit)&&!isSampleTenant(t);
+/* a value equal to a sample value counts as sample only with other evidence: sample mode, a sample channel or tenant still present, or at least two of property/landlord/phone still at sample values */
+const sampleFields=()=>{const f=Object.keys(SAMPLE_SET).filter(k=>(S.settings||{})[k]===SAMPLE_SET[k]);const strong=f.filter(k=>k!=='loc').length;
+ return(S.demo||S.channels.some(isSampleChannel)||S.tenants.some(isSampleTenant)||strong>=2)?f:[]};
+const SET_LABEL={prop:'property name',loc:'location',landlord:'landlord name',phone:'landlord phone'};
+function demoPlan(){
+ const st=S.tenants.filter(isSampleTenant),ids=new Set(st.map(t=>t.id));
+ const pay=S.payments.filter(p=>(p.tid&&ids.has(p.tid))||(!p.tid&&p.src==='demo')),pset=new Set(pay.map(p=>p.id));
+ const keepPay=S.payments.filter(p=>!pset.has(p.id)),sc=S.channels.filter(isSampleChannel);
+ return{tenants:st,ids,pay,addedByUser:pay.filter(p=>p.src!=='demo').length,charges:S.charges.filter(c=>ids.has(c.tid)).length,
+  chRemove:sc.filter(c=>!keepPay.some(p=>p.ch===c.id)),chKept:sc.filter(c=>keepPay.some(p=>p.ch===c.id)),fields:sampleFields()}}
+function demoClearAsk(){
+ const pl=demoPlan();if(!pl.tenants.length&&!pl.chRemove.length&&!pl.fields.length)return toast('No sample data found.');
+ const rm=[],keep=[];
+ if(pl.tenants.length)rm.push(pl.tenants.length+' sample tenant'+(pl.tenants.length>1?'s':'')+' ('+pl.tenants.map(t=>esc(t.name)).join(', ')+') with '+pl.charges+' charges and '+pl.pay.length+' payments'+(pl.addedByUser?' — including '+pl.addedByUser+' you recorded on them':''));
+ if(pl.chRemove.length)rm.push('sample payment channels: '+pl.chRemove.map(c=>esc(c.label)).join(', '));
+ if(pl.fields.length)rm.push('sample '+pl.fields.map(k=>SET_LABEL[k]+' "'+esc(S.settings[k])+'"').join(', ')+' (if one of these is really yours, cancel and enter it again afterwards)');
+ const real=S.tenants.length-pl.tenants.length;
+ keep.push(real+' other tenant'+(real===1?'':'s')+' and all their charges and payments');
+ const edited=S.tenants.filter(looksSampleButEdited);if(edited.length)keep.push(edited.map(t=>esc(t.name)).join(', ')+' (you changed '+(edited.length>1?'their':'this tenant\'s')+' details, so '+(edited.length>1?'they are':'it is')+' treated as genuine)');
+ if(pl.chKept.length)keep.push('channel'+(pl.chKept.length>1?'s':'')+' '+pl.chKept.map(c=>esc(c.label)).join(', ')+' (used by payments you recorded)');
+ keep.push('every setting and channel you changed or added');
+ ask('<b>Remove the sample data?</b><br><br>This removes:<ul style="margin:4px 0 8px 18px;padding:0">'+rm.map(x=>'<li>'+x+'</li>').join('')+'</ul>Kept exactly as they are:<ul style="margin:4px 0 0 18px;padding:0">'+keep.map(x=>'<li>'+x+'</li>').join('')+'</ul>',()=>demoClearDo(),'Remove Sample Data')}
+function demoClearDo(){
+ const pl=demoPlan(),ids=pl.ids,rmCh=new Set(pl.chRemove.map(c=>c.id)),names=pl.tenants.map(t=>t.name),labels=pl.tenants.map(t=>tlabel(t)),pset=new Set(pl.pay.map(p=>p.id));
+ S.tenants=S.tenants.filter(t=>!ids.has(t.id));S.payments=S.payments.filter(p=>!pset.has(p.id));
+ S.charges=S.charges.filter(c=>!ids.has(c.tid));S.readings=S.readings.filter(r=>!ids.has(r.tid));
+ S.rules=(S.rules||[]).filter(r=>!ids.has(r.tid));S.depEv=(S.depEv||[]).filter(e=>!ids.has(e.tid));S.credEv=(S.credEv||[]).filter(e=>!ids.has(e.tid));S.settlements=(S.settlements||[]).filter(x=>!ids.has(x.tid));
+ const occ=new Set(S.tenants.map(t=>t.unit));S.units=(S.units||[]).filter(u=>!(pl.tenants.some(t=>t.unit===u.name&&+t.rent===+u.rent)&&!occ.has(u.name)));
+ S.channels=S.channels.filter(c=>!rmCh.has(c.id));
+ S.ctypes.forEach(c=>{if(c.ch&&rmCh.has(c.ch))c.ch='';if(c.tids)c.tids=c.tids.filter(id=>!ids.has(id))});
+ pl.fields.forEach(k=>{S.settings[k]=''});
+ if(pl.fields.includes('prop'))(S.props||[]).forEach(p=>{if(p.name===SAMPLE_SET.prop)p.name='My Property'});   /* the app keeps its own copy of the property name; reset it to the app's neutral default */
+ S.audit=(S.audit||[]).filter(a=>!labels.some(l=>JSON.stringify(a).includes(l)));
+ S.demo=false;audit('sample data removed',names.length+' sample tenants, '+pl.chRemove.length+' sample channels');
+ save();if(SAVEFAIL)return;                                   /* a failed save is rolled back by the Phase 2 guard: nothing is half-removed */
+ try{localStorage.removeItem(K+'_premerge')}catch(e){}        /* the one-step merge copy could still hold the sample records */
+ render();toast('Sample data removed. Now enter your property details and payment channels in Settings & Backup.')}
+function sampleWarn(){if(!(S.demo||S.channels.some(isSampleChannel)||sampleFields().length))return'';return'<div class="note er"><b>⚠️ Sample payment details are still saved.</b> This message may show a sample bank account or phone number. Remove them (Settings &amp; Backup) or enter yours before sending.</div>'}
+function setupBar(){const f=sampleFields(),c=S.channels.filter(isSampleChannel);
+ if(f.length||c.length)return'<div class="demo"><b>SAMPLE DETAILS STILL SAVED</b> — '+(c.length?'sample payment channel(s) ':'')+(f.length?'sample property details ':'')+'will appear in reminders and receipts. <button class="sm d" data-a="clearDemo">Remove sample details</button></div>';
+ if(!String(S.settings.prop||'').trim()||!S.channels.length)return'<div class="note"><b>Finish setting up:</b> add your property name, landlord details and payment channels in <b>Settings &amp; Backup</b> before sending reminders or receipts.</div>';
+ return''}
+{const o=A.remind;A.remind=function(){const r=o.apply(this,arguments);const w=sampleWarn(),mb=$('#m .mb');if(w&&mb&&$('#rem_t'))mb.insertAdjacentHTML('afterbegin',w);return r}}
+/* ===== Water is billed ONCE per tenant per month (Phase 4, issue 1) =====
+   Either by the meter reading, or by a fixed amount the landlord and tenant agreed (initial billing) - never both. */
+const meterCharge=r=>S.charges.find(c=>c.rid===r.id&&!c.cancelled);
+const monthWater=(tid,m)=>S.charges.find(c=>c.tid===tid&&c.ty==='ct_water'&&c.month===m&&!c.cancelled);
+/* ===== Add Charge: accidental duplicate vs separate obligation (Phase 4, issue 2) =====
+   A MONTHLY charge (rent, or a fixed monthly charge such as garbage/Wi-Fi) is normally on a tenant's account once per month, so a second one for the same
+   month is questioned. A ONE-TIME charge (Other fee and similar) is questioned only when it is identical (same tenant, type, month, amount and description);
+   a different description, amount, month or tenant is a separate obligation and is added without a question. Deleted (cancelled) charges are ignored.
+   The landlord can always confirm "Add Another Charge"; nothing is ever blocked outright. */
+function chargeDup(tid,ty,mo,a,desc){
+ const ct=S.ctypes.find(c=>c.id===ty),same=S.charges.filter(c=>c.tid===tid&&c.ty===ty&&c.month===mo&&!c.cancelled);if(!same.length)return'';
+ const monthly=!!ct&&(ct.calc==='rent'||(ct.calc==='fixed'&&ct.freq!=='once')),norm=x=>String(x||'').trim().toLowerCase();
+ if(monthly)return'<b>'+esc(ct.name)+' for '+mlabel(mo)+' is already on this tenant\'s account</b> ('+same.map(c=>money(c.amount)).join(', ')+').<br><br>A monthly charge is normally added once. Add another only if this is a separate, additional amount you really mean to charge.';
+ if(same.some(c=>+c.amount===+r2(a)&&norm(c.desc)===norm(desc)))return'<b>An identical charge is already on this account:</b> '+esc(desc)+' — '+money(a)+' ('+mlabel(mo)+').<br><br>Add it again only if the tenant really owes it twice.';
+ return''}
+/* ===== Water due date (Phase 4, issue 3) =====
+   Water is a bill issued AFTER the meter is read, so it falls due on the property's normal due day (Settings: Rent/charges due day) in the month AFTER the
+   billing month - the same cycle as the next rent. If it is entered after that date it falls due on the next due day on or after the day it is entered,
+   so a water bill is never already overdue when it is created. Rent, other generated charges and agreed initial amounts keep their own rules. */
+/* ===== Manual charge due date (Phase 4, issue 3 follow-up) =====
+   Default for a charge added by hand: the billing month's own due day, but never earlier than the first due day on or after the day it is entered, so a charge
+   added now is not already overdue just because its billing month is in the past. A landlord recording a genuine historical arrear types the real (past) date. */
+function manualDue(mo){const e=today();let f=dueOf(e.slice(0,7));if(f<e)f=dueOf(nextMonth(e.slice(0,7)));const b=dueOf(mo);return b>f?b:f}
+function waterDue(mo){const e=today(),base=dueOf(nextMonth(mo));let f=dueOf(e.slice(0,7));if(f<e)f=dueOf(nextMonth(e.slice(0,7)));return base>f?base:f}
+const wbDueRow=r=>{const c=meterCharge(r);return c?'<tr><td>Payment due<td>'+dmy(c.due):''},wbDueTxt=r=>{const c=meterCharge(r);return c?'\nPayment due: '+dmy(c.due):''};
+function wbAmt(r){const mc=meterCharge(r);if(mc)return money(mc.amount);const o=monthWater(r.tid,r.month);return o?money(o.amount)+' (agreed amount for the month — no meter charge)':money(r.units*r.rate)}
+
+
+   /* mark a restore so other windows adopt it instead of merging */
+
 /* ---- record timestamps: createdAt / updatedAt on every new record; legacy records are only stamped when we really know the time ---- */
 let STAMP=null;const COLL=['tenants','charges','payments','readings','units','channels','ctypes','rules','depEv','credEv','settlements','props'],sj=x=>{const{createdAt,updatedAt,...r}=x;return JSON.stringify(r)};
 function migrateStamps(){(S.payments||[]).forEach(p=>{if(!p.createdAt&&p.rec)p.createdAt=p.rec})}
@@ -824,8 +1119,38 @@ function depReport(){const L=live().map(t=>({t,d:depPos(t.id)})).filter(x=>x.d.h
 
 const soVoidedHtml=s=>{const v=[...(S.depEv||[]),...(S.credEv||[])].filter(e=>e.sid===s.id&&e.kind==='refund'&&e.void);return v.length?`<h4>Refunds marked as entered in error</h4>${v.map(e=>`<div style="padding:8px 0;border-bottom:1px solid #E4E7EC"><s>${money(e.amt)}</s> · ${dmy(e.date)}${e.ref?' · '+esc(e.ref)+'':''}<br><small>Reason: ${esc(e.voidReason||'')}</small></div>`).join('')}`:''};
 function settlementLine(tid){const s=settledOf(tid),t=T_(tid);if(s){const r=soRefund(s);return`<div class="card"><small>MOVE-OUT SETTLEMENT</small><b>${esc(soShort(s))}</b><div>Refund due ${money(r.due)} · paid ${money(r.paid)} · remaining ${money(r.rem)}</div></div>`}return t&&!t.active&&(S.settlements||[]).some(x=>x.tid===tid&&x.status==='reopened')?'<div class="card"><small>MOVE-OUT SETTLEMENT</small><b>Reversed — not yet settled</b></div>':''}
-/* a new tenant starts with the move-in month's charges, so the first payment has something to be allocated to */
-{const ts0=A.tSave;A.tSave=(i,b)=>{const n0=S.tenants.length;ts0(i,b);if(!i&&S.tenants.length>n0){const t=S.tenants[S.tenants.length-1],m=String(t.moveIn||today()).slice(0,7);if(m<=today().slice(0,7)){const k=genMonth(m,t.id);if(k){audit('move-in charges created',t.unit+' '+mlabel(m));save();render();toast('Tenant saved. '+k+' charge'+(k==1?'':'s')+' for '+mlabel(m)+' created. Use Record Payment to allocate rent and deposit.')}}}}}
+/* ===== Initial billing: what the landlord and tenant agreed for the first payment =====
+   Registering a tenant NEVER posts a charge. The agreement is stored on the tenant record (t.initBill) and is only a note until the landlord presses Post,
+   which creates one ordinary charge (S.charges) for the move-in month. Duplicate protection is the same rule the monthly run uses: a charge for the same
+   tenant + charge type + month that is not cancelled already exists. t.billStart = the first month the normal monthly rules apply (the property's due day is unchanged). */
+const IB_MODES=[['none','Decide later — nothing recorded yet'],['full_later','Full monthly amount — post later'],['full_now','Full monthly amount — post now'],['custom_later','A different agreed amount — post later'],['custom_now','A different agreed amount — post now']];
+const ibTypes=()=>S.ctypes.filter(c=>!c.deleted&&c.active&&(c.calc==='rent'||(c.calc==='fixed'&&c.freq!=='once')||c.id==='ct_water'));
+const ibState=it=>{const ch=it.chargeId&&S.charges.find(c=>c.id===it.chargeId);return ch?(ch.cancelled?'cancelled':'posted'):'pending'};
+const ibOpen=t=>!!(t&&t.initBill&&!t.initBill.done&&(t.initBill.items||[]).some(it=>ibState(it)!=='posted'));
+const ibNote=t=>ibOpen(t)?`<div class="note">⚠️ Initial billing is not finished. Nothing has been added to this tenant's balance for the items not yet posted. <button class="sm" data-a="ibView" data-i="${t.id}">Open initial billing</button></div>`:'';
+function ibForm(){return`<div class="card dp"><b>Initial billing (optional)</b><div class="note ok">Saving the tenant does <b>not</b> charge anything. Write down what you agreed for the first payment, or skip this and do it later from the tenant's account. A charge changes the balance only after it is <b>posted</b>.</div>${ibTypes().map(c=>`<div style="margin:8px 0"><b>${esc(c.name)}</b>${c.calc==='meter'?'<br><small>Water is normally billed from meter readings. Use this only for a fixed amount you agreed; no meter charge is then added for the same month.</small>':''}${sel('ib_m_'+c.id,c.calc==='meter'?IB_MODES.filter(m=>m[0].indexOf('full')!==0):IB_MODES,'none','data-c="ibm" data-i="'+c.id+'"')}<input id="ib_a_${c.id}" type="number" step="any" min="0" placeholder="Agreed amount (KSh)" disabled style="margin-top:6px;display:none"></div>`).join('')}${fld('Initial payment due date (if left blank: the move-in date)','ib_due','','date')}<label>Regular monthly bills start from${sel('ib_start',[['next','The month after the move-in month (recommended)'],['same','The move-in month itself']],'next')}</label><div class="note">Your normal rent due day (day ${+S.settings.due||5} of the month) is not changed. Initial charges are for the move-in month and use the due date above.</div></div>`}
+Object.assign(C,{ibm:t=>{const a=$('#ib_a_'+t.dataset.i);if(a){const c=t.value.indexOf('custom')===0;a.disabled=!c;a.style.display=c?'':'none';if(!c)a.value=''}}});
+function ibRead(rent){const items=[];let err='';ibTypes().forEach(c=>{const mode=val('ib_m_'+c.id)||'none',a=parseFloat(val('ib_a_'+c.id));if(mode==='none'){items.push({ty:c.id,mode:'none',amount:null});return}
+ const custom=mode.indexOf('custom')===0,now=/_now$/.test(mode);let amt;
+ if(custom){if(!(a>0)){err=err||'Enter the agreed amount for '+c.name+' (greater than zero), or choose "Decide later".';return}amt=a}
+ else{amt=c.calc==='rent'?rent:+c.amount;if(!(amt>0)){err=err||'There is no full monthly amount for '+c.name+' yet. Enter the monthly rent first, or choose a different amount.';return}}
+ items.push({ty:c.id,mode:custom?'custom':'full',amount:r2(amt),now})});return{items,err,due:val('ib_due'),start:val('ib_start')||'next'}}
+function ibAttach(t,ib){const moveM=String(t.moveIn||today()).slice(0,7);t.billStart=ib.start==='same'?moveM:nextMonth(moveM);t.initBill={period:moveM,due:ib.due||'',items:ib.items,createdAt:new Date().toISOString(),done:false}}
+/* posts ONE agreed charge; returns '' on success or a plain-language reason it was not posted */
+function ibPost(t,it,amt,due){const ib=t.initBill,c=TY(it.ty);if(!ib||!c)return'That charge type was not found.';if(!(amt>0))return'Enter the amount (greater than zero).';if(!due)return'Enter the due date.';
+ if((c.calc==='rent'||c.calc==='fixed'||c.id==='ct_water')&&S.charges.some(x=>x.tid===t.id&&x.ty===c.id&&x.month===ib.period&&!x.cancelled))return c.name+' for '+mlabel(ib.period)+' is already on this tenant\'s account, so it was not added again.';
+ mkCharge(t.id,c.id,ib.period,amt,c.name+' — agreed initial amount',{due,init:true});const ch=S.charges[S.charges.length-1];it.chargeId=ch.id;it.amount=r2(amt);if(it.mode==='none')it.mode='custom';audit('initial charge posted',tlabel(t)+' '+c.name+' '+r2(amt)+' due '+due);return''}
+function ibPostNow(t){const ib=t.initBill;if(!ib)return'Tenant saved';let n=0,bad='';const due=ib.due||t.moveIn||today();ib.items.forEach(it=>{if(it.now){const e=ibPost(t,it,it.amount,due);if(e)bad=bad||e;else n++}delete it.now});
+ const open=ib.items.filter(it=>ibState(it)!=='posted').length;if(n&&!open)ib.done=true;
+ return'Tenant saved. '+(n?n+' initial charge'+(n==1?'':'s')+' posted.':'No charges were posted.')+(open?' Initial billing is not finished — open the tenant\'s account and tap Initial billing when you are ready.':'')+(bad?' '+bad:'')}
+Object.assign(A,{
+ ibView:i=>{const t=T_(i);if(!t||!t.initBill)return;const ib=t.initBill;modal(`<h3>Initial billing — ${esc(tlabel(t))}</h3><div class="note">Charge period: <b>${mlabel(ib.period)}</b>. Regular monthly bills start from <b>${t.billStart?mlabel(t.billStart):'—'}</b>. Nothing here changes the balance until you press <b>Post to balance</b>.</div>${fld('Due date for the charges you post','ib_pd',ib.due||t.moveIn||today(),'date')}`+
+  ib.items.map(it=>{const c=TY(it.ty),st=ibState(it),ch=it.chargeId&&S.charges.find(x=>x.id===it.chargeId);return`<div class="card" style="padding:10px;margin:8px 0"><b>${esc(c?c.name:'Charge')}</b> <span class="bd ${st==='posted'?'PAID':'NEUTRAL'}">${st==='posted'?'POSTED':st==='cancelled'?'POSTED CHARGE WAS CANCELLED':'NOT POSTED'}</span><br>`+(st==='posted'?`${money(ch.amount)} · due ${dmy(ch.due)}`:`${fld('Agreed amount (KSh)','ib_x_'+it.ty,it.amount||'','number','step=any min=0')}<div class="bar"><button class="g sm" data-a="ibPostOne" data-i="${t.id}|${it.ty}">Post to balance</button></div>`)+`</div>`}).join('')+
+  `<div class="bar"><button class="s" data-a="ibDone" data-i="${t.id}">Finished — nothing more to post</button><button class="s" data-a="acctView" data-i="${t.id}">Back</button></div>`)},
+ ibPostOne:k=>{const[tid,ty]=String(k).split('|'),t=T_(tid),it=t&&t.initBill&&t.initBill.items.find(x=>x.ty===ty);if(!it)return;const amt=parseFloat(val('ib_x_'+ty)),due=val('ib_pd'),e=ibPost(t,it,amt,due);if(e)return toast(e);t.initBill.due=due;if(!t.initBill.items.some(x=>ibState(x)!=='posted'))t.initBill.done=true;save();render();A.ibView(tid);toast(tyName(ty)+' of '+money(amt)+' posted. The tenant now owes it until a payment is recorded.')},
+ ibDone:i=>{const t=T_(i);if(!t||!t.initBill)return;t.initBill.done=true;save();render();A.acctView(i);toast('Initial billing marked as finished.')}
+});
+
 /* the unit keeps its history: who lived there before */
 {const u1=V.units;V.units=()=>{const L=S.tenants.filter(t=>!t.active&&!t.deleted).sort((a,b)=>String(b.movedOut||'')<String(a.movedOut||'')?-1:1);return u1()+(L.length?`<div class="card"><b>Previous tenants</b>${L.map(t=>`<div style="min-height:44px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E4E7EC"><span>${esc(t.unit)} · ${esc(t.name)}</span><small>${t.movedOut?'moved out '+dmy(t.movedOut):'inactive'}</small></div>`).join('')}</div>`:'')}}
 
@@ -835,11 +1160,111 @@ function colBreakHtml(m){const pm=validPays().filter(p=>p.date.slice(0,7)===m),n
 
 {const d0=V.dashboard,s0=V.settings;V.dashboard=()=>accessBanner()+d0();V.settings=()=>s0()+accessCard()}
 Object.assign(A,{accessGo:async()=>{const c=val('ac_in').trim();if(c.length<10)return toast('Please type your full access code.');if(!cfgOk())return toast('Cannot check the code right now. Connect to the internet and try again.');const h=await codeHash(c);if(!DEGUM_CUSTOMERS[h])return toast('Code not recognised. Check it and try again.');LS(ACK,h);runAccess();render()},accessRetry:()=>location.reload(),accessReset:()=>{LS(ACK,null);runAccess()}});
+/* ===== ONE-TIME OPENING WATER READING CORRECTION =====
+   Lets a landlord correct the genuine opening meter reading ONCE. Issued water bills are never rewritten: the units difference is recorded as a
+   separate "Water Adjustment" line (an extra charge if the tenant was under-charged, a negative credit line if over-charged) at the tariff stored on
+   the affected reading. If anything is uncertain the correction is NOT made (manual review) and the one-time opportunity stays unused.
+   The used flag is stored on the tenant record (t.owc) so it survives reloads and backup/restore; it is enforced inside owcApply, not only by hiding buttons. */
+const OWC_MAX=200,OWC_LOCK='This reading was changed by the one-time opening reading correction, so it can no longer be edited or removed here. The earlier bill was kept and the difference was recorded separately.';
+const owcNorm=s=>String(s==null?'':s).trim().toLowerCase();
+const owcReads=tid=>S.readings.filter(r=>r.tid===tid).sort((a,b)=>a.month<b.month?-1:a.month>b.month?1:0);
+const owcHasInit=t=>t.init!=null&&t.init!=='';
+const owcLockedInit=t=>!!(t&&t.id&&((t.owc&&t.owc.used)||owcReads(t.id).length));
+const owcShow=t=>!!(t&&t.active&&(t.meter||owcHasInit(t)||owcReads(t.id).length));
+const owcShared=t=>S.tenants.some(x=>x.id!==t.id&&!x.deleted&&((owcNorm(x.meter)&&owcNorm(x.meter)===owcNorm(t.meter))||(owcNorm(x.unit)&&owcNorm(x.unit)===owcNorm(t.unit)))&&(owcReads(x.id).length||owcHasInit(x)));
+const owcBtn=t=>owcShow(t)?`<button class="sm s" data-a="owcOpen" data-i="${t.id}">${t.owc&&t.owc.used?'OPENING (CORRECTED)':'OPENING READING'}</button>`:'';
+const owcChg=r=>r.corr?(r.corr.billFrom!=null?r.corr.billFrom:r2(r.corr.unitsFrom*r.rate)):r.units*r.rate;
+const owcO=r=>r.corr?{prev:r.corr.from,units:r.corr.unitsFrom}:{prev:r.prev,units:r.units};
+const owcRowTxt=r=>r.units+' units (was '+r.corr.unitsFrom+') · '+(r.corr.billFrom!=null?'bill '+money(r.corr.billFrom)+' kept':'no meter charge')+' · difference recorded separately';
+/* what the opening reading is, and which reading period it affects */
+function owcState(tid){const t=T_(tid),o={tid,t,block:'',review:'',old:null,kind:'',aff:null,base:null};
+ if(!t||t.deleted){o.block='Tenant not found.';return o}
+ if(t.owc&&t.owc.used){o.used=true;return o}
+ if(!t.active){o.block='This tenant has moved out. The opening reading of a moved-out tenant cannot be corrected here.';return o}
+ const rs=owcReads(tid),f=rs[0]||null,hi=owcHasInit(t);
+ if(!f){if(!hi){o.block='No opening reading has been recorded for this tenant yet. Type it in the tenant details or on the Water Reading Sheet first.';return o}o.old=+t.init;o.kind='init';return o}
+ if(f.repl){o.review='This tenant\'s first meter record is a meter replacement, so the opening reading cannot be checked automatically.';return o}
+ if(f.first){o.kind='first';o.base=f;o.old=+f.cur;o.aff=rs[1]||null;if(hi&&+t.init!==o.old)o.review='The opening reading in the tenant details ('+t.init+') does not match the first reading on the water sheet ('+o.old+').'}
+ else{o.kind=hi?'init':'sheet';o.aff=f;o.old=+f.prev;if(hi&&+t.init!==o.old)o.review='The opening reading in the tenant details ('+t.init+') does not match the starting reading of the first water bill ('+o.old+').'}
+ return o}
+/* everything the landlord must see before confirming; never changes any record */
+function owcPlan(tid,raw){const p=owcState(tid);if(p.block||p.used)return p;
+ const n=Number(raw);if(raw===''||raw==null||!isFinite(n)||n<0||n>9999999){p.block='Enter a valid meter reading (0 or more).';return p}
+ const nv=r2(n);if(nv===r2(p.old)){p.block='The corrected reading is the same as the original reading. There is nothing to correct.';return p}
+ p.nv=nv;if(p.review)return p;
+ const aff=p.aff;
+ if(aff){if(nv>aff.cur){p.block='The corrected reading ('+nv+') cannot be higher than the next reading taken ('+aff.cur+'). That would give negative water use.';return p}
+  if(aff.repl){p.review='The first reading after the opening is a meter replacement.';return p}
+  if(r2(aff.prev)!==r2(p.old)||r2(aff.cur-aff.prev)!==r2(aff.units)){p.review='The figures on the first water reading do not add up (previous '+aff.prev+', current '+aff.cur+', units '+aff.units+').';return p}}
+ if(Math.abs(nv-p.old)>OWC_MAX){p.review='The difference is more than '+OWC_MAX+' units. Please check the meter and the records before changing anything.';return p}
+ p.diff=r2(p.old-nv);
+ if(!aff){p.mode='none';return p}
+ const rate=+aff.rate;if(!(rate>0)){p.review='The tariff used for the first water bill cannot be found.';return p}
+ p.rate=rate;const all=S.charges.filter(c=>c.rid===aff.id),lv=all.find(c=>!c.cancelled);
+ if(lv){if(Math.abs(lv.amount-r2(aff.units*rate))>0.01){p.review='The water bill for '+mlabel(aff.month)+' ('+money(lv.amount)+') no longer matches its reading ('+aff.units+' units × '+money(rate)+'). It was changed after it was issued.';return p}p.bill=lv}
+ else if(all.length){p.review='The water bill for '+mlabel(aff.month)+' was deleted, so the effect of the correction cannot be worked out reliably.';return p}
+ else{const fx=monthWater(tid,aff.month);if(fx)p.fixed=fx;else{p.review='No water bill can be found for the first reading ('+mlabel(aff.month)+').';return p}}
+ if(p.diff>0&&owcShared(p.t)){p.review='Another tenant has used this meter or house before. The extra '+p.diff+' unit'+(p.diff==1?'':'s')+' may belong to the previous tenant, so they cannot be charged to this tenant automatically.';return p}
+ if(p.fixed)p.mode='fixed';else{const amt=r2(p.diff*rate);p.mode=amt>0?'charge':'credit';p.adj={amount:amt}}
+ return p}
+function owcBal(tid,adj){const real=S;try{S=JSON.parse(JSON.stringify(real));if(adj)mkCharge(tid,'sys_wadj',today().slice(0,7),adj.amount,'x',{due:today()});return acct(tid)}finally{S=real}}
+/* the ONLY place the correction is made. Re-checks everything, enforces the one-time rule, changes records in memory (caller saves). */
+function owcApply(tid,raw,reason,meta){const t=T_(tid);if(!t)return{err:'Tenant not found.'};
+ if(t.owc&&t.owc.used)return{err:'The one-time opening reading correction has already been used for this tenant.'};
+ const why=String(reason||'').trim();if(why.length<3)return{err:'Please type the reason for the correction.'};
+ const p=owcPlan(tid,raw);if(p.block)return{err:p.block};if(p.review)return{err:p.review,review:1};
+ const at=new Date().toISOString(),m=today().slice(0,7);let adjId=null;
+ if(!S.ctypes.some(c=>c.id==='sys_wadj'))S.ctypes.push({id:'sys_wadj',name:'Water Adjustment',calc:'sys',active:false});
+ if(p.kind==='first'){const b=p.base;b.corr={at,from:p.old,to:p.nv,unitsFrom:0,unitsTo:0,base:true};b.cur=p.nv;b.prev=p.nv}
+ if(p.aff){const a=p.aff;a.corr={at,from:p.old,to:p.nv,unitsFrom:a.units,unitsTo:r2(a.cur-p.nv),billFrom:p.bill?p.bill.amount:null};a.prev=p.nv;a.units=r2(a.cur-p.nv)}
+ if(owcHasInit(t)&&(p.kind==='init'||p.kind==='first'))t.init=p.nv;
+ if(p.adj){const ab=Math.abs(p.adj.amount),cr=p.adj.amount<0;mkCharge(tid,'sys_wadj',m,p.adj.amount,(cr?'Water credit':'Water adjustment')+' — opening reading corrected '+p.old+' → '+p.nv+' ('+mlabel(p.aff.month)+': '+Math.abs(p.diff)+' unit'+(Math.abs(p.diff)==1?'':'s')+' × '+money(p.rate)+')',{due:cr?today():manualDue(m),owc:true});adjId=S.charges[S.charges.length-1].id}
+ t.owc={used:true,at,from:p.old,to:p.nv,reason:why,method:(meta&&meta.method)||'manual',detected:meta&&meta.detected!=null?meta.detected:null,edited:!!(meta&&meta.detected!=null&&r2(+raw)!==r2(+meta.detected)),kind:p.kind,unitsDiff:p.diff,rate:p.rate||null,mode:p.mode,amount:p.adj?p.adj.amount:0,chargeId:adjId,readingId:p.aff?p.aff.id:(p.base?p.base.id:null),billId:p.bill?p.bill.id:null};
+ audit('opening water reading corrected',t.name+' ('+t.unit+'): '+p.old+' → '+p.nv+'; reason: '+why+'; '+(p.adj?(p.adj.amount<0?'credit ':'extra charge ')+money(Math.abs(p.adj.amount)):p.mode==='fixed'?'no adjustment (that month was an agreed amount)':'no adjustment needed'));
+ return{ok:1,plan:p}}
+const owcBalTxt=a=>a.out>0?'Owes '+money(a.out):a.credit>0?'Credit '+money(a.credit):'Nothing owed';
+function owcAskHtml(i){const s=owcState(i),t=s.t;return`<h3>Correct Opening Water Reading</h3><p><b>${esc(t.name)}</b> · House ${esc(t.unit)}${t.meter?' · Meter '+esc(t.meter):''}</p><div class="note">Opening reading now: <b>${s.old}</b>.<br>You can correct it only <b>once</b>. Bills already issued are <b>not changed</b>. Any difference is recorded as a separate adjustment, and you review it before anything is saved.</div><div class="bar"><button class="g" data-a="owcManual" data-i="${i}">Enter Reading Manually</button><button data-a="owcPhoto" data-i="${i}">📷 Take Meter Photo</button><button class="s" data-a="owcPhotoPick" data-i="${i}">📁 Choose Photo</button></div><small>Photo reading needs internet. If it is not available, just type the reading.</small><div class="bar"><button class="s" data-a="closeM">Cancel</button></div>`}
+const owcMsgHtml=m=>`<h3>Manual Review Needed</h3><div class="note er"><b>Nothing has been changed.</b><br>${esc(m)}</div><p>Your one-time correction has <b>not</b> been used. Please check the meter, the readings and the tenant account first. Water bills stay as issued; if a charge or credit is really owed, add it yourself on the tenant's account.</p><div class="bar"><button class="s" data-a="closeM">Close</button></div>`;
+const owcRow=(l,v)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #e5e7eb"><span style="color:#64748b">${l}</span><span style="text-align:right;max-width:62%">${v}</span></div>`;
+function owcReviewHtml(i){const o=ui.owc,p=owcPlan(i,o.nv);
+ if(p.block)return`<h3>Correct Opening Water Reading</h3><div class="note er">${esc(p.block)}</div><div class="bar"><button data-a="owcManual" data-i="${i}">Back</button><button class="s" data-a="closeM">Cancel</button></div>`;
+ if(p.review)return owcMsgHtml(p.review);
+ const t=p.t,a0=acct(i),a1=owcBal(i,p.adj),d=p.diff,ad=Math.abs(d),u=ad==1?'unit':'units',per=p.aff?mlabel(p.aff.month)+' reading':'';
+ const fa=!p.aff?'None — no later water reading has been taken yet.':p.mode==='fixed'?'None — water for '+mlabel(p.aff.month)+' was charged as an agreed amount, not by meter.':p.mode==='charge'?'Additional charge of <b>'+money(p.adj.amount)+'</b> will be added (separate line).':'Credit of <b>'+money(Math.abs(p.adj.amount))+'</b> will be recorded (separate line).';
+ const un=p.bill?'Water '+p.aff.units+' units — '+money(p.bill.amount)+' ('+mlabel(p.aff.month)+') stays exactly as issued':p.fixed?'Agreed water charge '+money(p.fixed.amount)+' stays as issued':'No water bill has been issued yet';
+ return`<h3>Correct Opening Water Reading</h3><p>Please check, then press <b>Confirm Correction</b>.</p>${owcRow('Tenant',esc(t.name)+' ('+esc(t.unit)+')')}${owcRow('Original Reading',p.old)}${owcRow('Corrected Reading','<b>'+p.nv+'</b>'+(o.method==='photo'?' <small>(from photo)</small>':''))}${owcRow('Units Difference',d>0?ad+' more '+u+' than recorded':ad+' fewer '+u+' than recorded')}${owcRow('Affected reading',p.aff?per+': '+p.old+' → '+p.aff.cur+' becomes '+p.nv+' → '+p.aff.cur+' ('+r2(p.aff.cur-p.nv)+' units)':'None yet')}${p.rate?owcRow('Tariff',money(p.rate)+' per unit (the rate on that bill)'):''}${owcRow('Bills that stay unchanged',un)}${owcRow('Financial Adjustment',fa)}${owcRow('Balance now',owcBalTxt(a0))}${owcRow('Balance after','<b>'+owcBalTxt(a1)+'</b>')}${p.mode==='credit'&&a1.credit>0?'<div class="note">This tenant has already paid. The credit stays on the account and reduces future bills. If the tenant moves out first, refund it by hand.</div>':''}<div class="note">Receipts, payments and earlier bills are not touched.</div>${fld('Reason for the correction','owc_r',o.reason||'')}<div class="bar"><button class="g" data-a="owcConfirm" data-i="${i}">Confirm Correction</button><button data-a="owcManual" data-i="${i}">Back</button><button class="s" data-a="closeM">Cancel</button></div>`}
+function owcDoneHtml(i,fresh){const t=T_(i),c=t.owc;if(!c)return'';const adj=c.chargeId?(c.amount<0?'Credit of '+money(Math.abs(c.amount)):'Extra charge of '+money(c.amount))+' (separate line)':'No financial adjustment was needed';
+ return`<h3>${fresh?'Opening Reading Corrected':'Opening Reading Correction'}</h3>${fresh?'<div class="note ok"><b>The opening water reading has been corrected. This one-time correction opportunity has now been used. Previously issued bills have been preserved.</b></div>':'<div class="note">The one-time correction has been used for this tenant.</div>'}${owcRow('Tenant',esc(t.name)+' ('+esc(t.unit)+')')}${owcRow('Original Reading',c.from)}${owcRow('Corrected Reading','<b>'+c.to+'</b>')}${owcRow('Financial Adjustment',adj)}${owcRow('Reason',esc(c.reason))}${owcRow('Date',new Date(c.at).toLocaleString('en-GB'))}<div class="bar"><button class="s" data-a="closeM">Close</button></div>`}
+Object.assign(A,{
+ owcOpen:i=>{const s=owcState(i);if(s.used)return modal(owcDoneHtml(i,false));
+  if(s.block)return modal(`<h3>Correct Opening Water Reading</h3><div class="note er">${esc(s.block)}</div><div class="bar"><button class="s" data-a="closeM">Close</button></div>`);
+  ui.owc={tid:i,method:'manual',detected:null,nv:'',reason:''};
+  if(s.review)return modal(owcMsgHtml(s.review));
+  modal(owcAskHtml(i))},
+ owcManual:i=>{const o=ui.owc;if(!o||o.tid!==i)ui.owc={tid:i,method:'manual',detected:null,nv:'',reason:''};else if(!$('#owc_r')){}ui.owc.method='manual';ui.owc.detected=null;const s=owcState(i);if(s.used||s.block)return A.owcOpen(i);
+  modal(`<h3>Enter Reading Manually</h3><p>Original Reading: <b>${s.old}</b></p>${fld('Corrected Reading','owc_v',ui.owc.nv,'number','step=any min=0 inputmode="decimal"')}<small>Type the number shown on the water meter.</small><div class="bar"><button class="g" data-a="owcReview" data-i="${i}">Review Correction</button><button class="s" data-a="owcOpen" data-i="${i}">Back</button><button class="s" data-a="closeM">Cancel</button></div>`)},
+ owcReview:i=>{if(!ui.owc||ui.owc.tid!==i)ui.owc={tid:i,method:'manual',detected:null,nv:'',reason:''};const v=$('#owc_v');if(v)ui.owc.nv=v.value.trim();const r=$('#owc_r');if(r)ui.owc.reason=r.value;
+  modal(owcReviewHtml(i))},
+ owcPhoto:i=>A.owcScan(i,false),owcPhotoPick:i=>A.owcScan(i,true),
+ owcScan:(i,gal)=>{const inp=document.createElement('input');inp.type='file';inp.accept='image/*';if(!gal)inp.setAttribute('capture','environment');
+  inp.onchange=async()=>{const f=inp.files&&inp.files[0];if(!f)return;modal('<h3>Reading the meter…</h3><div class="note">Please wait. (Needs internet the first time.)</div>');let w=null,url=null;
+   try{url=URL.createObjectURL(f);const TS=await loadTess(),{canvas}=await prepImage(f);w=await TS.createWorker('eng',1);await w.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789'});const r=await w.recognize(canvas),ws=getWords(r.data).map(x=>({v:String(x.t).replace(/\D/g,''),a:x.w*x.h})).filter(x=>x.v.length>=2&&x.v.length<=7).sort((p,q)=>q.a-p.a);A.owcDetected(i,ws[0]?+ws[0].v:null,url)}
+   catch(e){A.owcDetected(i,undefined,url)}finally{if(w)try{await w.terminate()}catch(e){}}};inp.click()},
+ owcDetected:(i,v,url)=>{const s=owcState(i);if(s.used||s.block)return A.owcOpen(i);if(!ui.owc||ui.owc.tid!==i)ui.owc={tid:i,method:'manual',detected:null,nv:'',reason:''};
+  const img=url?`<img src="${url}" style="max-height:150px;border-radius:8px;border:1px solid #ccc;display:block;margin:6px auto">`:'';
+  if(v==null){ui.owc.method='manual';ui.owc.detected=null;return modal(`<h3>Meter Photo</h3><div class="note er">${v===undefined?'Photo reading is not available right now (it needs internet). Please type the reading.':'Could not read a number from the photo. Please type the reading.'}</div>${img}${fld('Corrected Reading','owc_v','','number','step=any min=0 inputmode="decimal"')}<div class="bar"><button class="g" data-a="owcReview" data-i="${i}">Review Correction</button><button class="s" data-a="closeM">Cancel</button></div>`)}
+  ui.owc.method='photo';ui.owc.detected=v;
+  modal(`<h3>Review Detected Reading</h3><div style="font-size:2.2rem;font-weight:700;text-align:center">${v}</div>${img}<p>Check this against your meter. Photos can be misread — <b>correct the number below if it is wrong</b>. Nothing is saved yet.</p>${fld('Corrected Reading','owc_v',v,'number','step=any min=0 inputmode="decimal"')}<div class="bar"><button class="g" data-a="owcReview" data-i="${i}">Review Correction</button><button class="s" data-a="owcManual" data-i="${i}">Type It Instead</button><button class="s" data-a="closeM">Cancel</button></div>`)},
+ owcConfirm:i=>{const o=ui.owc;if(!o||o.tid!==i)return toast('Please start the correction again.');const r=$('#owc_r');if(r)o.reason=r.value;
+  const res=owcApply(i,o.nv,o.reason,{method:o.method,detected:o.detected});
+  if(res.err){if(res.review)return modal(owcReviewHtml(i));return toast(res.err)}
+  save();ui.owc=null;closeM();render();modal(owcDoneHtml(i,true));toast('Opening reading corrected.')}
+});
 /* ---------- events ---------- */
 Object.assign(C,{mon:t=>{if(t.value){month=t.value;render()}},tq:t=>{ui.tq=t.value;rr(t)},pq:t=>{ui.pq=t.value;rr(t)},tf:t=>{ui.tf=t.value;render()},ip:t=>{ui.ip=t.value;render()},rt:t=>{ui.rt=t.value;render();const c=$('#rcur');if(c)c.focus()},st:t=>{ui.st=t.value;render()},rp:t=>{ui.rep=t.value;render()},sr:t=>{const e=$('#ss_'+t.dataset.i),tt=T_(t.dataset.i);if(e&&tt)e.innerHTML=sRow(tt,val('sr_'+tt.id).trim()).h},sp:t=>C.sr($('#sr_'+t.dataset.i)||t),scan:(t,e)=>{if(e.type!=='change')return;const fs=[...t.files];t.value='';if(fs.length)A.scanFiles(fs)},tx:t=>setTx(t.value),chm:t=>{ui.chm=t.value;const l=val('h_l');A.chForm(t.dataset.i);$('#h_l').value=l},
  imp:(t,e)=>{if(e.type!=='change')return;const f=t.files[0];t.value='';if(f)(f.text?f.text():new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsText(f)})).then(importJson)}});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&A[b.dataset.a])A[b.dataset.a](b.dataset.i,b)});
-const cH=e=>{const t=e.target.closest('[data-c]');if(t&&C[t.dataset.c])C[t.dataset.c](t,e)};document.addEventListener('change',cH);document.addEventListener('input',e=>{if(e.target.matches('[data-live]'))cH(e)});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&A[b.dataset.a])runGuarded(()=>A[b.dataset.a](b.dataset.i,b))});
+const cH=e=>{const t=e.target.closest('[data-c]');if(t&&C[t.dataset.c])runGuarded(()=>C[t.dataset.c](t,e))};document.addEventListener('change',cH);document.addEventListener('input',e=>{if(e.target.matches('[data-live]'))cH(e)});
 load();render();runAccess();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})}).catch(()=>{}));
 
