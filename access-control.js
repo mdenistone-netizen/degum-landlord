@@ -62,11 +62,11 @@ const DEGUM_CUSTOMERS = {
   "cd2f2e714291f4bd9470b7371053590dc1841026e5d3e8328089a539924b834c": {
     name: "Church tester 1",
     devices: ["V4F5-1T0F"],
-    mode: "TRIAL",
+    mode: "ACTIVE",
     trialStart: "2026-10-13",
     trialEnd: "2026-11-16",
-    subscriptionStart: null,
-    subscriptionEnd: null
+    subscriptionStart: "2026-11-17",
+    subscriptionEnd: "2026-12-17"
   },
   "73dd5907d0bcc489223c2f04705c89785f560c059df8e23228a9a15f8d5f2c51": {
     name: "Church tester 2",
