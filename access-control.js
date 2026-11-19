@@ -40,7 +40,7 @@ const DEGUM_CUSTOMERS = {
     subscriptionEnd: null
   },
      "80bd6dc3fee6c68c98dc58c3fada0b9e6ceedc65e8d47099abfb860db5ad96cb": {
-    name: "Peter Muchoki",
+    name: "Ann Gateru",
     devices: ["4OJT-7IUO"],
     mode: "TRIAL",
     trialStart: "2026-10-08",
@@ -62,20 +62,20 @@ const DEGUM_CUSTOMERS = {
   "cd2f2e714291f4bd9470b7371053590dc1841026e5d3e8328089a539924b834c": {
     name: "Church tester 1",
     devices: ["V4F5-1T0F"],
-    mode: "ACTIVE",
-    trialStart: "2026-10-13",
-    trialEnd: "2026-11-16",
-    subscriptionStart: "2026-11-17",
-    subscriptionEnd: "2026-12-17"
-  },
-  "73dd5907d0bcc489223c2f04705c89785f560c059df8e23228a9a15f8d5f2c51": {
-    name: "Church tester 2",
-    devices: ["1EIZ-5K67"],
     mode: "TRIAL",
     trialStart: "2026-10-13",
     trialEnd: "2026-11-16",
     subscriptionStart: null,
     subscriptionEnd: null
+  },
+  "73dd5907d0bcc489223c2f04705c89785f560c059df8e23228a9a15f8d5f2c51": {
+    name: "PETER MUCHOKI",
+    devices: ["1EIZ-5K67"],
+    mode: "ACTIVE",
+    trialStart: "2026-10-13",
+    trialEnd: "2026-11-16",
+    subscriptionStart: "2026-11-19",
+    subscriptionEnd: "2026-12-19"
   },
 
   /* Ordinary customers (dates kept exactly as supplied). */
